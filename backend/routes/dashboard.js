@@ -29,34 +29,29 @@ router.get('/', protect, async (req, res) => {
     const totalTopics = await Topic.countDocuments();
     const userProgressList = await UserTopicProgress.find({ userId });
     
-    let completedTopicsCount = userProgressList.filter(p => p.status === 'Completed' || p.status === 'Mastered').length;
-    let inProgressTopicsCount = userProgressList.filter(p => p.status === 'Learning' || p.status === 'Practicing').length;
-    
-    // If new user with default seed stats, blend with user.studyStats
-    if (completedTopicsCount === 0 && user.studyStats?.topicsCompletedCount > 0) {
-      completedTopicsCount = user.studyStats.topicsCompletedCount;
-      inProgressTopicsCount = 38;
-    }
+    const completedTopicsCount = userProgressList.filter(p => p.status === 'Completed' || p.status === 'Mastered').length;
+    const inProgressTopicsCount = userProgressList.filter(p => p.status === 'Learning' || p.status === 'Practicing').length;
     const notStartedTopicsCount = Math.max(0, totalTopics - completedTopicsCount - inProgressTopicsCount);
     const overallCompletionPercent = totalTopics > 0 ? Math.round((completedTopicsCount / totalTopics) * 100) : 0;
 
     // 4. DSA Stats
-    const dsaSolved = await DSAProblem.countDocuments({
+    const dsaSolvedCount = await DSAProblem.countDocuments({
       userId,
       status: { $in: ['Solved', 'Mastered'] }
     });
-    const effectiveDSACount = Math.max(dsaSolved, user.studyStats?.dsaSolvedCount || 0);
 
     // 5. Practice & Accuracy Stats
     const attempts = await PracticeAttempt.find({ userId });
-    let totalAttempts = attempts.length;
-    let correctAttempts = attempts.filter(a => a.isCorrect).length;
-    let accuracy = totalAttempts > 0 ? Math.round((correctAttempts / totalAttempts) * 100) : 82;
+    const totalAttempts = attempts.length;
+    const correctAttempts = attempts.filter(a => a.isCorrect).length;
+    const accuracy = totalAttempts > 0 ? Math.round((correctAttempts / totalAttempts) * 100) : 0;
 
     // 6. Study Time Today & Total
     const todaySessions = await StudySession.find({ userId, date: today });
-    const todayStudyMinutes = todaySessions.reduce((acc, curr) => acc + curr.durationMinutes, 0);
-    const totalStudyHours = ((user.studyStats?.totalMinutes || 0) + todayStudyMinutes) / 60;
+    const todayStudyMinutes = todaySessions.reduce((acc, curr) => acc + (curr.durationMinutes || 0), 0);
+    const allUserSessions = await StudySession.find({ userId });
+    const allUserMinutes = allUserSessions.reduce((acc, curr) => acc + (curr.durationMinutes || 0), 0);
+    const totalStudyHours = ((user?.studyStats?.totalMinutes || 0) + allUserMinutes) / 60;
 
     // 7. Revise Today (Spaced Repetition)
     const todayRevisions = await Revision.find({
@@ -72,36 +67,44 @@ router.get('/', protect, async (req, res) => {
     const weakTopics = await detectWeakTopics(userId);
 
     // 10. Motivational Quote / Greeting
-    const streak = user.streak?.currentStreak || 1;
-    let motivationalMessage = `🔥 ${streak}-day streak! You are making consistent progress toward your dream placement.`;
+    const streak = user?.streak?.currentStreak || 0;
+    let motivationalMessage = `Welcome, ${user.name}! Start your first study session or topic today to build your placement streak.`;
     if (streak >= 10) {
       motivationalMessage = `🔥 ${streak}-day streak! Keep going ${user.name}, you are in the top tier of consistency!`;
+    } else if (streak > 0) {
+      motivationalMessage = `🔥 ${streak}-day streak! You are making consistent progress toward your dream placement.`;
     }
+
+    const completedTodayTasks = todayTasks.filter(t => t.isCompleted).length;
+    const todayProgressPercentage = todayTasks.length > 0 
+      ? Math.round((completedTodayTasks / todayTasks.length) * 100) 
+      : 0;
+
+    const interviewPracticedCount = attempts.filter(a => a.category === 'Interview Conceptual').length || (user?.studyStats?.interviewQuestionsPracticed || 0);
 
     res.json({
       user: {
         name: user.name,
+        email: user.email,
         targetRole: user.targetRole,
-        xp: user.xp,
-        level: user.level,
-        streak: user.streak
+        xp: user.xp || 0,
+        level: user.level || 1,
+        streak: user.streak || { currentStreak: 0, longestStreak: 0 }
       },
       motivationalMessage,
       metrics: {
-        todayProgressPercentage: todayTasks.length > 0 
-          ? Math.round((todayTasks.filter(t => t.isCompleted).length / todayTasks.length) * 100) 
-          : 78,
-        todayStudyMinutes: todayStudyMinutes || 205,
+        todayProgressPercentage,
+        todayStudyMinutes,
         totalStudyHoursFormatted: `${Math.floor(totalStudyHours)}h ${Math.round((totalStudyHours % 1) * 60)}m`,
         topicsCompleted: completedTopicsCount,
         totalTopics,
         topicsInProgress: inProgressTopicsCount,
         topicsNotStarted: notStartedTopicsCount,
-        overallCompletionPercentage: overallCompletionPercent || 31,
-        dsaSolvedCount: effectiveDSACount,
+        overallCompletionPercentage: overallCompletionPercent,
+        dsaSolvedCount,
         accuracyPercentage: accuracy,
         pendingMistakesCount,
-        interviewPracticedCount: user.studyStats?.interviewQuestionsPracticed || 42
+        interviewPracticedCount
       },
       todayTasks,
       todayRevisions,

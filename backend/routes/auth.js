@@ -70,7 +70,7 @@ router.post('/login', async (req, res) => {
     if (user && (await user.matchPassword(password))) {
       // Update streak if needed
       const today = new Date().toISOString().split('T')[0];
-      if (user.streak && user.streak.lastActiveDate !== today) {
+      if (user.streak && user.streak.lastActiveDate && user.streak.lastActiveDate !== today) {
         const lastDate = new Date(user.streak.lastActiveDate);
         const currentDate = new Date(today);
         const diffDays = Math.round((currentDate - lastDate) / (1000 * 60 * 60 * 24));
@@ -145,7 +145,7 @@ router.post('/google', async (req, res) => {
 
       // Update streak
       const today = new Date().toISOString().split('T')[0];
-      if (user.streak && user.streak.lastActiveDate !== today) {
+      if (user.streak && user.streak.lastActiveDate && user.streak.lastActiveDate !== today) {
         const lastDate = new Date(user.streak.lastActiveDate);
         const currentDate = new Date(today);
         const diffDays = Math.round((currentDate - lastDate) / (1000 * 60 * 60 * 24));
@@ -173,12 +173,12 @@ router.post('/google', async (req, res) => {
         targetRole: 'Software Development Engineer (SDE)',
         placementYear: 2026,
         college: 'Computer Science & Engineering',
-        xp: 150,
+        xp: 0,
         level: 1,
         streak: {
-          currentStreak: 1,
-          longestStreak: 1,
-          lastActiveDate: new Date().toISOString().split('T')[0]
+          currentStreak: 0,
+          longestStreak: 0,
+          lastActiveDate: ''
         }
       });
     }

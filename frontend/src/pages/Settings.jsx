@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Settings as SettingsIcon,
   User,
@@ -25,8 +25,8 @@ export const Settings = () => {
   const { theme, setTheme } = useTheme();
 
   const [profile, setProfile] = useState({
-    name: user?.name || 'Charan',
-    email: user?.email || 'charan@example.com',
+    name: user?.name || '',
+    email: user?.email || '',
     targetRole: user?.targetRole || 'Software Development Engineer (SDE)',
     placementYear: user?.placementYear || 2026,
     college: user?.college || 'Computer Science & Engineering'
@@ -38,6 +38,22 @@ export const Settings = () => {
   const [savedSuccess, setSavedSuccess] = useState(false);
   const [showVerifyModal, setShowVerifyModal] = useState(false);
   const [showGoogleModal, setShowGoogleModal] = useState(false);
+
+  // Sync with current authenticated user whenever session loads or updates
+  useEffect(() => {
+    if (user) {
+      setProfile({
+        name: user.name || '',
+        email: user.email || '',
+        targetRole: user.targetRole || 'Software Development Engineer (SDE)',
+        placementYear: user.placementYear || 2026,
+        college: user.college || 'Computer Science & Engineering'
+      });
+      setAiApiKey(user.settings?.geminiApiKey || '');
+      setDailyGoalMins(user.settings?.dailyStudyGoalMinutes || 180);
+      setSoundEnabled(user.settings?.soundEnabled ?? true);
+    }
+  }, [user]);
 
   const handleSaveAll = async (e) => {
     e.preventDefault();

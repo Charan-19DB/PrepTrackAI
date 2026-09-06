@@ -66,13 +66,13 @@ export const Navbar = ({ onOpenSearch, onToggleSidebar, isSidebarOpen }) => {
         {/* Streak Badge */}
         <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-orange-500/10 text-orange-600 dark:text-orange-400 border border-orange-500/20 text-xs sm:text-sm font-bold shadow-sm">
           <Flame className="w-4 h-4 fill-orange-500 text-orange-500 animate-bounce" />
-          <span>{user?.streak?.currentStreak || 12} <span className="hidden sm:inline">Days</span></span>
+          <span>{user?.streak?.currentStreak ?? 0} <span className="hidden sm:inline">Days</span></span>
         </div>
 
         {/* XP & Level Badge */}
         <div className="hidden lg:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-brand-500/10 text-brand-600 dark:text-brand-400 border border-brand-500/20 text-xs font-bold">
           <Zap className="w-3.5 h-3.5 fill-brand-500 text-brand-500" />
-          <span>Lvl {user?.level || 5} • {user?.xp || 2850} XP</span>
+          <span>Lvl {user?.level || 1} • {user?.xp ?? 0} XP</span>
         </div>
 
         {/* Pomodoro Timer Badge / Trigger */}

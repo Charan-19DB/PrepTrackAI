@@ -57,7 +57,7 @@ export const Analytics = () => {
   }
 
   const {
-    readinessScore = 78,
+    readinessScore = 0,
     dailyStudy = [],
     weeklyStudy = [],
     subjectBreakdown = [],

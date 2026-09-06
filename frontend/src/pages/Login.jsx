@@ -85,13 +85,13 @@ export const Login = () => {
           </span>
         </button>
 
-        {/* Quick Demo Login Button */}
+        {/* Quick Demo Preview Button */}
         <button
           onClick={handleDemoLogin}
           disabled={loading}
-          className="w-full py-2.5 px-4 rounded-2xl bg-gradient-to-r from-brand-600 to-purple-600 hover:from-brand-500 hover:to-purple-500 text-white font-extrabold text-xs shadow-md shadow-brand-500/25 transition-all flex items-center justify-center gap-2"
+          className="w-full py-2.5 px-4 rounded-2xl bg-gradient-to-r from-gray-700 to-gray-800 hover:from-gray-600 hover:to-gray-700 text-gray-200 font-bold text-xs border border-gray-600/40 shadow-sm transition-all flex items-center justify-center gap-2"
         >
-          <Sparkles className="w-4 h-4" /> Quick Demo Login (Charan • SDE Prep)
+          <Sparkles className="w-4 h-4 text-brand-400" /> Quick Demo Preview (Pre-seeded Sample Data)
         </button>
 
         <div className="relative flex items-center justify-center">

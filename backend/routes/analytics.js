@@ -42,22 +42,33 @@ router.get('/', protect, async (req, res) => {
       sessionMap[s.date] = (sessionMap[s.date] || 0) + s.durationMinutes;
     });
 
-    // Provide realistic preparation baseline if new user
-    const sampleBaselineMinutes = [60, 90, 45, 120, 75, 90, 150, 80, 110, 60, 140, 95, 120, 205];
-    dailyStudy.forEach((day, idx) => {
-      day.minutes = sessionMap[day.date] !== undefined ? sessionMap[day.date] : sampleBaselineMinutes[idx];
+    // Provide real preparation data for this user
+    dailyStudy.forEach((day) => {
+      day.minutes = sessionMap[day.date] || 0;
       day.hours = +(day.minutes / 60).toFixed(1);
     });
 
     // 2. Weekly Study Hours (Last 6 weeks)
-    const weeklyStudy = [
-      { week: 'Week 1', hours: 14.5, target: 15 },
-      { week: 'Week 2', hours: 16.0, target: 15 },
-      { week: 'Week 3', hours: 12.5, target: 15 },
-      { week: 'Week 4', hours: 18.2, target: 15 },
-      { week: 'Week 5', hours: 19.5, target: 15 },
-      { week: 'Current', hours: +(dailyStudy.reduce((acc, d) => acc + d.hours, 0) / 2).toFixed(1), target: 20 }
-    ];
+    const weeklyStudy = [];
+    const allUserSessions = await StudySession.find({ userId });
+    for (let w = 5; w >= 0; w--) {
+      const weekStart = new Date(today);
+      weekStart.setDate(weekStart.getDate() - (w * 7) - 6);
+      const weekEnd = new Date(today);
+      weekEnd.setDate(weekEnd.getDate() - (w * 7));
+      const startStr = weekStart.toISOString().split('T')[0];
+      const endStr = weekEnd.toISOString().split('T')[0];
+
+      const weekSessions = allUserSessions.filter(s => s.date >= startStr && s.date <= endStr);
+      const weekMinutes = weekSessions.reduce((acc, s) => acc + (s.durationMinutes || 0), 0);
+      const weekHours = +(weekMinutes / 60).toFixed(1);
+
+      weeklyStudy.push({
+        week: w === 0 ? 'Current' : `W-${w}`,
+        hours: weekHours,
+        target: 15
+      });
+    }
 
     // 3. Subject Completion Breakdown
     const subjects = await Subject.find().sort({ order: 1 });
@@ -70,24 +81,14 @@ router.get('/', protect, async (req, res) => {
         (p.status === 'Completed' || p.status === 'Mastered')
       ).length;
 
-      const baselineMap = {
-        'dbms-and-sql': 32,
-        'data-structures-and-algorithms': 28,
-        'operating-systems': 22,
-        'python-programming': 26,
-        'computer-networks': 18,
-        'quantitative-aptitude': 24
-      };
-
-      const finalCompleted = completed > 0 ? completed : (baselineMap[sub.slug] || 8);
-      const percentage = topicCount > 0 ? Math.round((finalCompleted / topicCount) * 100) : 25;
+      const percentage = topicCount > 0 ? Math.round((completed / topicCount) * 100) : 0;
 
       return {
         subject: sub.name,
         slug: sub.slug,
         category: sub.category,
         totalTopics: topicCount || sub.totalTopicsCount,
-        completedTopics: finalCompleted,
+        completedTopics: completed,
         percentage
       };
     }));
@@ -95,58 +96,65 @@ router.get('/', protect, async (req, res) => {
     // 4. DSA Progress by Difficulty
     const dsaProblems = await DSAProblem.find({ userId });
     const dsaByDifficulty = [
-      { name: 'Easy', solved: dsaProblems.filter(p => p.difficulty === 'Easy' && (p.status === 'Solved' || p.status === 'Mastered')).length || 24, total: 35 },
-      { name: 'Medium', solved: dsaProblems.filter(p => p.difficulty === 'Medium' && (p.status === 'Solved' || p.status === 'Mastered')).length || 22, total: 50 },
-      { name: 'Hard', solved: dsaProblems.filter(p => p.difficulty === 'Hard' && (p.status === 'Solved' || p.status === 'Mastered')).length || 8, total: 20 }
+      { name: 'Easy', solved: dsaProblems.filter(p => p.difficulty === 'Easy' && (p.status === 'Solved' || p.status === 'Mastered')).length, total: 35 },
+      { name: 'Medium', solved: dsaProblems.filter(p => p.difficulty === 'Medium' && (p.status === 'Solved' || p.status === 'Mastered')).length, total: 50 },
+      { name: 'Hard', solved: dsaProblems.filter(p => p.difficulty === 'Hard' && (p.status === 'Solved' || p.status === 'Mastered')).length, total: 20 }
     ];
 
     // 5. Practice Accuracy by Category
     const attempts = await PracticeAttempt.find({ userId });
-    const practiceAccuracy = [
-      { category: 'MCQs', accuracy: 84 },
-      { category: 'DSA / Coding', accuracy: 78 },
-      { category: 'Aptitude', accuracy: 72 },
-      { category: 'SQL Queries', accuracy: 88 },
-      { category: 'Output Prediction', accuracy: 80 },
-      { category: 'Interview Conceptual', accuracy: 76 }
-    ];
+    const categories = ['MCQs', 'DSA / Coding', 'Aptitude', 'SQL Queries', 'Output Prediction', 'Interview Conceptual'];
+    const practiceAccuracy = categories.map(cat => {
+      const catAttempts = attempts.filter(a => a.category === cat);
+      const correct = catAttempts.filter(a => a.isCorrect).length;
+      const accuracy = catAttempts.length > 0 ? Math.round((correct / catAttempts.length) * 100) : 0;
+      return { category: cat, accuracy };
+    });
 
     // 6. Placement Readiness Score (0 - 100)
-    // Formula: DSA solved (30%) + Subject completion (30%) + Practice accuracy (20%) + Consistency streak (20%)
     const user = await User.findById(userId);
-    const avgSubjectCompletion = Math.round(subjectBreakdown.reduce((a, b) => a + b.percentage, 0) / subjectBreakdown.length);
-    const streakBonus = Math.min(100, (user.streak?.currentStreak || 12) * 8);
-    const readinessScore = Math.round(
-      (0.3 * Math.min(100, (dsaProblems.length || 54) * 1.5)) +
+    const avgSubjectCompletion = subjectBreakdown.length > 0
+      ? Math.round(subjectBreakdown.reduce((a, b) => a + b.percentage, 0) / subjectBreakdown.length)
+      : 0;
+    const streakBonus = Math.min(100, (user?.streak?.currentStreak || 0) * 8);
+    const totalAttempts = attempts.length;
+    const overallAccuracy = totalAttempts > 0
+      ? Math.round((attempts.filter(a => a.isCorrect).length / totalAttempts) * 100)
+      : 0;
+    const dsaSolvedTotal = dsaProblems.filter(p => p.status === 'Solved' || p.status === 'Mastered').length;
+
+    const readinessScore = Math.min(100, Math.round(
+      (0.3 * Math.min(100, dsaSolvedTotal * 1.5)) +
       (0.3 * avgSubjectCompletion) +
-      (0.2 * 82) +
+      (0.2 * overallAccuracy) +
       (0.2 * streakBonus)
-    );
+    ));
 
     // 7. 365-day GitHub-style Contribution Heatmap
-    // Generate dates for the past 365 days
+    const activityMap = {};
+    allUserSessions.forEach(s => {
+      if (s.date) activityMap[s.date] = (activityMap[s.date] || 0) + 1;
+    });
+    const userTasksAll = await DailyTask.find({ userId, isCompleted: true });
+    userTasksAll.forEach(t => {
+      if (t.date) activityMap[t.date] = (activityMap[t.date] || 0) + 1;
+    });
+    attempts.forEach(a => {
+      const aDate = a.createdAt ? a.createdAt.toISOString().split('T')[0] : '';
+      if (aDate) activityMap[aDate] = (activityMap[aDate] || 0) + 1;
+    });
+
     const heatmap = [];
     const oneYearAgo = new Date();
     oneYearAgo.setDate(oneYearAgo.getDate() - 364);
 
-    // Prepopulate active dates
     for (let i = 0; i < 365; i++) {
       const d = new Date(oneYearAgo);
       d.setDate(d.getDate() + i);
       const dStr = d.toISOString().split('T')[0];
-
-      // Realistic mock density simulating an active 12-day streak and previous consistent weeks
-      let count = 0;
-      const daysFromToday = Math.round((today - d) / (1000 * 60 * 60 * 24));
-      if (daysFromToday <= 12 && daysFromToday >= 0) {
-        count = Math.floor(Math.random() * 4) + 3; // Active streak
-      } else if (Math.random() > 0.4) {
-        count = Math.floor(Math.random() * 5);
-      }
-
       heatmap.push({
         date: dStr,
-        count
+        count: activityMap[dStr] || 0
       });
     }
 

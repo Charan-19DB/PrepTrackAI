@@ -19,12 +19,12 @@ const userSchema = new mongoose.Schema({
   placementYear: { type: Number, default: 2026 },
   college: { type: String, default: 'Computer Science & Engineering' },
   avatar: { type: String, default: '' },
-  xp: { type: Number, default: 120 },
+  xp: { type: Number, default: 0 },
   level: { type: Number, default: 1 },
   streak: {
-    currentStreak: { type: Number, default: 1 },
-    longestStreak: { type: Number, default: 1 },
-    lastActiveDate: { type: String, default: () => new Date().toISOString().split('T')[0] }
+    currentStreak: { type: Number, default: 0 },
+    longestStreak: { type: Number, default: 0 },
+    lastActiveDate: { type: String, default: '' }
   },
   studyStats: {
     totalMinutes: { type: Number, default: 0 },

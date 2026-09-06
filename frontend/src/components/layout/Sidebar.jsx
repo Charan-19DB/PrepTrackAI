@@ -124,7 +124,7 @@ export const Sidebar = ({ isOpen, setIsOpen }) => {
               {user?.avatar ? (
                 <img src={user.avatar} alt={user.name} className="w-full h-full object-cover" />
               ) : (
-                user?.name ? user.name[0].toUpperCase() : 'C'
+                user?.name ? user.name[0].toUpperCase() : (user?.email ? user.email[0].toUpperCase() : 'U')
               )}
               {user?.isEmailVerified && (
                 <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-emerald-500 rounded-full border border-white dark:border-dark-surface flex items-center justify-center">
@@ -136,7 +136,7 @@ export const Sidebar = ({ isOpen, setIsOpen }) => {
               <div className="flex flex-col truncate">
                 <div className="flex items-center gap-1">
                   <span className="text-sm font-semibold text-gray-800 dark:text-gray-200 truncate">
-                    {user?.name || 'Charan'}
+                    {user?.name || user?.email?.split('@')[0] || 'Student'}
                   </span>
                   {user?.isEmailVerified && (
                     <ShieldCheck className="w-3.5 h-3.5 text-emerald-500 flex-shrink-0" title="Verified CSE Student" />
@@ -144,7 +144,7 @@ export const Sidebar = ({ isOpen, setIsOpen }) => {
                 </div>
                 <span className="text-xs text-brand-600 dark:text-brand-400 flex items-center gap-1 font-medium">
                   <Flame className="w-3 h-3 text-orange-500 fill-orange-500" />
-                  {user?.streak?.currentStreak || 12}d Streak
+                  {user?.streak?.currentStreak ?? 0}d Streak
                 </span>
               </div>
             )}

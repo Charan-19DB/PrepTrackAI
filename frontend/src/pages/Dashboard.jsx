@@ -136,10 +136,10 @@ export const Dashboard = () => {
               </span>
             </div>
             <h1 className="text-2xl md:text-4xl font-extrabold tracking-tight">
-              Good Morning, {user?.name || data?.user?.name || 'Charan'}
+              Good Morning, {user?.name || data?.user?.name || 'Student'}
             </h1>
             <p className="text-sm md:text-base text-gray-300 max-w-xl">
-              {data?.motivationalMessage || "🔥 12-day streak! Consistency is your competitive edge."}
+              {data?.motivationalMessage || "Welcome! Start your first topic or study session today to build momentum."}
             </p>
           </div>
 
@@ -147,7 +147,7 @@ export const Dashboard = () => {
             <div className="px-5 py-3 rounded-2xl bg-white/10 backdrop-blur-md border border-white/15 flex items-center gap-3">
               <Flame className="w-7 h-7 text-orange-400 fill-orange-400 animate-bounce" />
               <div>
-                <div className="text-xl md:text-2xl font-black">{data?.user?.streak?.currentStreak || 12} Days</div>
+                <div className="text-xl md:text-2xl font-black">{data?.user?.streak?.currentStreak ?? 0} Days</div>
                 <div className="text-[11px] text-gray-300 uppercase tracking-wider font-semibold">Study Streak</div>
               </div>
             </div>
@@ -175,13 +175,13 @@ export const Dashboard = () => {
           </div>
           <div>
             <div className="text-2xl md:text-3xl font-black text-gray-900 dark:text-white">
-              {metrics.todayProgressPercentage || 78}%
+              {metrics.todayProgressPercentage ?? 0}%
             </div>
             {/* Visual mini-bar */}
             <div className="w-full bg-gray-100 dark:bg-dark-surface rounded-full h-2 mt-2 overflow-hidden">
               <div
                 className="bg-brand-500 h-2 rounded-full transition-all duration-500"
-                style={{ width: `${metrics.todayProgressPercentage || 78}%` }}
+                style={{ width: `${metrics.todayProgressPercentage ?? 0}%` }}
               />
             </div>
           </div>
@@ -195,10 +195,10 @@ export const Dashboard = () => {
           </div>
           <div>
             <div className="text-2xl md:text-3xl font-black text-gray-900 dark:text-white">
-              {metrics.totalStudyHoursFormatted || '3h 25m'}
+              {metrics.totalStudyHoursFormatted || '0h 0m'}
             </div>
             <p className="text-xs text-gray-400 mt-1 font-medium">
-              {metrics.todayStudyMinutes || 205} min logged today
+              {metrics.todayStudyMinutes ?? 0} min logged today
             </p>
           </div>
         </div>
@@ -211,10 +211,10 @@ export const Dashboard = () => {
           </div>
           <div>
             <div className="text-2xl md:text-3xl font-black text-gray-900 dark:text-white">
-              {metrics.topicsCompleted || 128} <span className="text-sm text-gray-400 font-normal">/ {metrics.totalTopics || 420}</span>
+              {metrics.topicsCompleted ?? 0} <span className="text-sm text-gray-400 font-normal">/ {metrics.totalTopics || 0}</span>
             </div>
             <p className="text-xs text-indigo-600 dark:text-indigo-400 mt-1 font-medium">
-              {metrics.overallCompletionPercentage || 31}% overall syllabus
+              {metrics.overallCompletionPercentage ?? 0}% overall syllabus
             </p>
           </div>
         </div>
@@ -227,7 +227,7 @@ export const Dashboard = () => {
           </div>
           <div>
             <div className="text-2xl md:text-3xl font-black text-gray-900 dark:text-white">
-              {metrics.dsaSolvedCount || 54}
+              {metrics.dsaSolvedCount ?? 0}
             </div>
             <p className="text-xs text-gray-400 mt-1 font-medium">LeetCode & GFG</p>
           </div>
@@ -241,9 +241,9 @@ export const Dashboard = () => {
           </div>
           <div>
             <div className="text-2xl md:text-3xl font-black text-gray-900 dark:text-white">
-              {metrics.accuracyPercentage || 82}%
+              {metrics.accuracyPercentage ?? 0}%
             </div>
-            <p className="text-xs text-gray-400 mt-1 font-medium">High accuracy tier</p>
+            <p className="text-xs text-gray-400 mt-1 font-medium">Diagnostic tier</p>
           </div>
         </div>
       </div>
@@ -427,7 +427,7 @@ export const Dashboard = () => {
               to="/mistakes"
               className="block text-center text-xs font-semibold text-rose-500 hover:underline pt-1"
             >
-              Open Mistake Book ({metrics.pendingMistakesCount || 2} unresolved) →
+              Open Mistake Book ({metrics.pendingMistakesCount ?? 0} unresolved) →
             </Link>
           </div>
         </div>
