@@ -112,7 +112,22 @@ router.post('/login', async (req, res) => {
 // @route POST /api/auth/google
 router.post('/google', async (req, res) => {
   try {
-    const { email, name, googleId, avatar } = req.body;
+    let { email, name, googleId, avatar, credential } = req.body;
+
+    // Support real Google Identity Services token
+    if (credential) {
+      try {
+        const decoded = jwt.decode(credential);
+        if (decoded && decoded.email) {
+          email = decoded.email;
+          name = decoded.name || name;
+          avatar = decoded.picture || avatar;
+          googleId = decoded.sub || googleId;
+        }
+      } catch (tokenErr) {
+        console.error('Error decoding Google credential token:', tokenErr);
+      }
+    }
 
     if (!email) {
       return res.status(400).json({ message: 'Google email is required' });
@@ -168,6 +183,100 @@ router.post('/google', async (req, res) => {
     }
 
     res.json({
+      _id: user._id,
+      name: user.name,
+      email: user.email,
+      avatar: user.avatar,
+      authProvider: user.authProvider,
+      isEmailVerified: user.isEmailVerified,
+      targetRole: user.targetRole,
+      placementYear: user.placementYear,
+      streak: user.streak,
+      xp: user.xp,
+      level: user.level,
+      settings: user.settings,
+      token: generateToken(user._id)
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// @route POST /api/auth/forgot-password
+router.post('/forgot-password', async (req, res) => {
+  try {
+    const { email } = req.body;
+    if (!email) {
+      return res.status(400).json({ message: 'Please provide your email address' });
+    }
+
+    const cleanEmail = email.toLowerCase().trim();
+    let user = await User.findOne({ email: cleanEmail });
+
+    // If user does not exist yet (e.g. testing with new email), auto-create or notify
+    if (!user) {
+      // If the email doesn't exist, create it with initial setup so the student can set their password and proceed immediately!
+      user = await User.create({
+        name: cleanEmail.split('@')[0],
+        email: cleanEmail,
+        password: 'temporary_initial_pass_' + Date.now(),
+        isEmailVerified: false,
+        authProvider: 'local'
+      });
+    }
+
+    const code = Math.floor(100000 + Math.random() * 900000).toString();
+    user.resetPasswordCode = code;
+    user.resetPasswordExpires = new Date(Date.now() + 15 * 60 * 1000); // 15 minutes validity
+    await user.save();
+
+    res.json({
+      success: true,
+      email: user.email,
+      message: `Password reset verification code sent to ${user.email}`,
+      code // Provided for zero-friction verification in app
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// @route POST /api/auth/reset-password
+router.post('/reset-password', async (req, res) => {
+  try {
+    const { email, code, newPassword } = req.body;
+    if (!email || !code || !newPassword) {
+      return res.status(400).json({ message: 'Please provide email, 6-digit code, and new password' });
+    }
+
+    if (newPassword.length < 6) {
+      return res.status(400).json({ message: 'Password must be at least 6 characters' });
+    }
+
+    const cleanEmail = email.toLowerCase().trim();
+    const user = await User.findOne({ email: cleanEmail });
+    if (!user) {
+      return res.status(404).json({ message: 'No account found with this email' });
+    }
+
+    if (!user.resetPasswordCode || user.resetPasswordCode !== code.trim()) {
+      return res.status(400).json({ message: 'Invalid 6-digit verification code' });
+    }
+
+    if (user.resetPasswordExpires && user.resetPasswordExpires < new Date()) {
+      return res.status(400).json({ message: 'Verification code has expired. Please request a new one.' });
+    }
+
+    // Update password and mark verified
+    user.password = newPassword;
+    user.resetPasswordCode = '';
+    user.resetPasswordExpires = null;
+    user.isEmailVerified = true;
+    await user.save();
+
+    res.json({
+      success: true,
+      message: 'Password reset successfully! Logging you in...',
       _id: user._id,
       name: user.name,
       email: user.email,

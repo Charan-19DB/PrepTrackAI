@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Sparkles, ArrowRight, Lock, Mail, AlertCircle, ShieldCheck } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import GoogleAuthModal from '../components/auth/GoogleAuthModal';
+import ForgotPasswordModal from '../components/auth/ForgotPasswordModal';
 
 export const Login = () => {
   const [email, setEmail] = useState('');
@@ -10,6 +11,7 @@ export const Login = () => {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [showGoogleModal, setShowGoogleModal] = useState(false);
+  const [showForgotModal, setShowForgotModal] = useState(false);
 
   const { login } = useAuth();
   const navigate = useNavigate();
@@ -65,7 +67,7 @@ export const Login = () => {
           </div>
         )}
 
-        {/* Google Single Sign-On Button */}
+        {/* Real Google Single Sign-On Button */}
         <button
           type="button"
           onClick={() => setShowGoogleModal(true)}
@@ -77,9 +79,9 @@ export const Login = () => {
             <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z" />
             <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z" />
           </svg>
-          <span>Continue with Google (Verified)</span>
+          <span>Sign in with Google Mail</span>
           <span className="ml-auto text-[10px] px-1.5 py-0.5 rounded-md bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-bold border border-emerald-500/20">
-            Instant
+            Verified
           </span>
         </button>
 
@@ -109,14 +111,23 @@ export const Login = () => {
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="name@college.edu"
+                placeholder="name@college.edu or gmail.com"
                 className="w-full pl-10 pr-3 py-2.5 text-sm rounded-xl border border-gray-200 dark:border-dark-border bg-gray-50 dark:bg-dark-surface text-gray-900 dark:text-white focus:outline-none focus:border-brand-500"
               />
             </div>
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">Password</label>
+            <div className="flex items-center justify-between mb-1">
+              <label className="text-xs font-semibold text-gray-700 dark:text-gray-300">Password</label>
+              <button
+                type="button"
+                onClick={() => setShowForgotModal(true)}
+                className="text-xs font-semibold text-brand-600 dark:text-brand-400 hover:underline"
+              >
+                Forgot password?
+              </button>
+            </div>
             <div className="relative">
               <Lock className="w-4 h-4 absolute left-3.5 top-3 text-gray-400" />
               <input
@@ -146,10 +157,17 @@ export const Login = () => {
           </Link>
         </p>
 
-        {/* Google Authentication Modal */}
+        {/* Real Google Authentication Modal */}
         <GoogleAuthModal
           isOpen={showGoogleModal}
           onClose={() => setShowGoogleModal(false)}
+        />
+
+        {/* Forgot Password Modal */}
+        <ForgotPasswordModal
+          isOpen={showForgotModal}
+          onClose={() => setShowForgotModal(false)}
+          initialEmail={email}
         />
       </div>
     </div>

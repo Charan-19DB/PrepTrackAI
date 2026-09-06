@@ -12,6 +12,8 @@ const userSchema = new mongoose.Schema({
   authProvider: { type: String, enum: ['local', 'google'], default: 'local' },
   isEmailVerified: { type: Boolean, default: false },
   verificationCode: { type: String, default: '' },
+  resetPasswordCode: { type: String, default: '' },
+  resetPasswordExpires: { type: Date },
   targetRole: { type: String, default: 'Software Development Engineer (SDE)' },
   targetCompanies: [{ type: String }],
   placementYear: { type: Number, default: 2026 },
