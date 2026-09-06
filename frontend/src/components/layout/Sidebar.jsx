@@ -23,7 +23,8 @@ import {
   ChevronLeft,
   ChevronRight,
   ShieldCheck,
-  X
+  X,
+  Download
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
@@ -63,9 +64,9 @@ export const Sidebar = ({ isOpen, setIsOpen, isMobileOpen, setIsMobileOpen }) =>
 
   return (
     <aside
-      className={`fixed top-0 left-0 z-50 h-screen transition-all duration-300 ease-in-out border-r border-gray-200 dark:border-dark-border bg-white dark:bg-[#0E131F] flex flex-col justify-between ${
+      className={`fixed top-0 left-0 z-50 h-screen w-72 max-w-[85vw] transition-transform duration-300 ease-in-out border-r border-gray-200 dark:border-dark-border bg-white dark:bg-[#0E131F] flex flex-col justify-between ${
         /* Mobile: slide in/out drawer */
-        isMobileOpen ? 'translate-x-0 w-72 shadow-2xl' : '-translate-x-full'
+        isMobileOpen ? 'translate-x-0 shadow-2xl' : '-translate-x-full'
       } ${
         /* Desktop: always visible */
         isOpen ? 'md:translate-x-0 md:w-64' : 'md:translate-x-0 md:w-20'
@@ -136,6 +137,19 @@ export const Sidebar = ({ isOpen, setIsOpen, isMobileOpen, setIsMobileOpen }) =>
             );
           })}
         </nav>
+      </div>
+
+      {/* Download Native Android APK */}
+      <div className="px-3 py-2">
+        <a
+          href="/PrepTrackAI-Mobile.apk"
+          download="PrepTrackAI-Mobile.apk"
+          className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/50 hover:bg-emerald-100 dark:hover:bg-emerald-900/60 transition-colors shadow-sm group"
+          title="Download Android Native APK"
+        >
+          <Download className="w-4 h-4 text-emerald-600 dark:text-emerald-400 flex-shrink-0 group-hover:translate-y-0.5 transition-transform" />
+          <span className={`truncate ${!isOpen ? 'md:hidden' : ''}`}>Download Mobile APK</span>
+        </a>
       </div>
 
       {/* User profile & Logout footer */}
