@@ -38,10 +38,8 @@ export const ForgotPasswordModal = ({ isOpen, onClose, initialEmail = '' }) => {
     setStatusMsg('');
     try {
       const res = await api.post('/auth/forgot-password', { email: email.trim() });
-      if (res.data?.code) {
-        setCode(res.data.code); // Pre-fill for instant convenience
-      }
-      setStatusMsg(res.data?.message || 'Verification code sent!');
+      setCode(''); // Keep empty so student enters the code sent to their Gmail
+      setStatusMsg(res.data?.message || `6-digit verification code sent to ${email.trim()}! Please check your Gmail.`);
       setStep(2);
     } catch (err) {
       setErrorMsg(err.response?.data?.message || err.message || 'Failed to send reset code');

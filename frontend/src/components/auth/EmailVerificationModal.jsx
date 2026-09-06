@@ -29,11 +29,8 @@ export const EmailVerificationModal = ({ isOpen, onClose }) => {
     setErrorMsg('');
     try {
       const res = await sendEmailVerification(targetEmail.trim());
-      if (res.code) {
-        setSentCode(res.code);
-        setCode(res.code); // Pre-fill for convenience
-      }
-      setStatusMsg(`Verification code sent to ${targetEmail.trim()}`);
+      setCode(''); // Keep empty so student enters the code sent to their Gmail
+      setStatusMsg(res?.message || `6-digit verification code sent to ${targetEmail.trim()}! Please check your Gmail.`);
     } catch (err) {
       setErrorMsg(err.response?.data?.message || err.message || 'Failed to send verification code');
     } finally {

@@ -2,6 +2,7 @@ import express from 'express';
 import jwt from 'jsonwebtoken';
 import User from '../models/User.js';
 import { protect } from '../middleware/authMiddleware.js';
+import { sendOtpEmail } from '../services/emailService.js';
 
 const router = express.Router();
 
@@ -230,11 +231,13 @@ router.post('/forgot-password', async (req, res) => {
     user.resetPasswordExpires = new Date(Date.now() + 15 * 60 * 1000); // 15 minutes validity
     await user.save();
 
+    // Send real email via Gmail / SMTP
+    await sendOtpEmail({ to: user.email, code, type: 'reset' });
+
     res.json({
       success: true,
       email: user.email,
-      message: `Password reset verification code sent to ${user.email}`,
-      code // Provided for zero-friction verification in app
+      message: `Password reset verification code sent to ${user.email}. Please check your email inbox.`
     });
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -319,11 +322,13 @@ router.post('/send-verification', protect, async (req, res) => {
     user.verificationCode = code;
     await user.save();
 
+    // Send real email via Gmail / SMTP
+    await sendOtpEmail({ to: user.email, code, type: 'verification' });
+
     res.json({
       success: true,
       email: user.email,
-      message: `Verification code sent to ${user.email}`,
-      code // Provided for zero-friction verification in app
+      message: `Verification code sent to ${user.email}. Please check your email inbox.`
     });
   } catch (error) {
     res.status(500).json({ message: error.message });
