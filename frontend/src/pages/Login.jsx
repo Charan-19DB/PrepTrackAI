@@ -23,7 +23,7 @@ export const Login = () => {
       await login(email, password);
       navigate('/');
     } catch (err) {
-      setError(err.response?.data?.message || 'Invalid email or password');
+      setError(err.response?.data?.message || err.message || 'Invalid email or password');
     } finally {
       setLoading(false);
     }
@@ -36,7 +36,7 @@ export const Login = () => {
       await login('charan@example.com', 'password123');
       navigate('/');
     } catch (err) {
-      setError('Demo login failed. Please ensure backend seeder has executed.');
+      setError(err.response?.data?.message || err.message || 'Demo login failed. Please try again.');
     } finally {
       setLoading(false);
     }
