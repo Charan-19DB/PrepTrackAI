@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
-import { ShieldCheck, Mail, CheckCircle2, AlertCircle, Sparkles, X, RefreshCw } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { ShieldCheck, Mail, CheckCircle2, AlertCircle, Sparkles, X, RefreshCw, Edit3 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
 export const EmailVerificationModal = ({ isOpen, onClose }) => {
   const { user, sendEmailVerification, verifyEmailCode } = useAuth();
+  const [targetEmail, setTargetEmail] = useState('');
   const [code, setCode] = useState('');
   const [sentCode, setSentCode] = useState('');
   const [statusMsg, setStatusMsg] = useState('');
@@ -11,20 +12,30 @@ export const EmailVerificationModal = ({ isOpen, onClose }) => {
   const [loading, setLoading] = useState(false);
   const [verifiedSuccess, setVerifiedSuccess] = useState(false);
 
+  useEffect(() => {
+    if (user?.email) {
+      setTargetEmail(user.email);
+    }
+  }, [user?.email, isOpen]);
+
   if (!isOpen) return null;
 
   const handleSendCode = async () => {
+    if (!targetEmail || !targetEmail.trim()) {
+      setErrorMsg('Please enter a valid email address');
+      return;
+    }
     setLoading(true);
     setErrorMsg('');
     try {
-      const res = await sendEmailVerification();
+      const res = await sendEmailVerification(targetEmail.trim());
       if (res.code) {
         setSentCode(res.code);
-        setCode(res.code); // Pre-fill for instant test convenience
+        setCode(res.code); // Pre-fill for convenience
       }
-      setStatusMsg(`Verification code sent to ${user?.email || 'your email'}`);
+      setStatusMsg(`Verification code sent to ${targetEmail.trim()}`);
     } catch (err) {
-      setErrorMsg(err.response?.data?.message || 'Failed to send verification code');
+      setErrorMsg(err.response?.data?.message || err.message || 'Failed to send verification code');
     } finally {
       setLoading(false);
     }
@@ -43,7 +54,7 @@ export const EmailVerificationModal = ({ isOpen, onClose }) => {
         setVerifiedSuccess(false);
       }, 2000);
     } catch (err) {
-      setErrorMsg(err.response?.data?.message || 'Invalid or expired verification code');
+      setErrorMsg(err.response?.data?.message || err.message || 'Invalid or expired verification code');
     } finally {
       setLoading(false);
     }
@@ -62,7 +73,7 @@ export const EmailVerificationModal = ({ isOpen, onClose }) => {
                 Student Email Verification
               </h3>
               <p className="text-xs text-gray-500 dark:text-gray-400">
-                Secure your PrepTrack AI account & placement records
+                Verify or update your student email address
               </p>
             </div>
           </div>
@@ -81,27 +92,46 @@ export const EmailVerificationModal = ({ isOpen, onClose }) => {
               Identity Verified!
             </h4>
             <p className="text-xs text-emerald-600 dark:text-emerald-400">
-              Your student email is confirmed. You now have full access to official placement analytics.
+              Your student email ({targetEmail}) is confirmed. You now have full access to official placement analytics.
             </p>
           </div>
         ) : (
           <div className="space-y-4">
-            <div className="p-3.5 rounded-2xl bg-gray-50 dark:bg-dark-surface border border-gray-200 dark:border-dark-border flex items-center justify-between">
-              <div className="flex items-center gap-2.5 overflow-hidden">
-                <Mail className="w-4 h-4 text-brand-500 flex-shrink-0" />
-                <span className="text-xs font-semibold text-gray-800 dark:text-gray-200 truncate">
-                  {user?.email || 'student@example.com'}
+            {/* Editable Email Input Field */}
+            <div>
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="text-xs font-semibold text-gray-700 dark:text-gray-300 flex items-center gap-1">
+                  <Edit3 className="w-3.5 h-3.5 text-brand-500" />
+                  <span>Student Email Address (Editable)</span>
+                </label>
+                <span className="text-[10px] text-gray-400 font-medium">
+                  Type your real email
                 </span>
               </div>
-              <button
-                type="button"
-                onClick={handleSendCode}
-                disabled={loading}
-                className="text-xs font-bold text-brand-600 dark:text-brand-400 hover:underline flex items-center gap-1"
-              >
-                <RefreshCw className={`w-3 h-3 ${loading ? 'animate-spin' : ''}`} />
-                {sentCode ? 'Resend Code' : 'Send Code'}
-              </button>
+              
+              <div className="flex items-center gap-2">
+                <div className="relative flex-1">
+                  <Mail className="w-4 h-4 text-gray-400 absolute left-3.5 top-2.5" />
+                  <input
+                    type="email"
+                    required
+                    value={targetEmail}
+                    onChange={(e) => setTargetEmail(e.target.value)}
+                    placeholder="name@college.edu or gmail.com"
+                    className="w-full pl-10 pr-3 py-2 text-xs sm:text-sm rounded-xl border border-gray-200 dark:border-dark-border bg-gray-50 dark:bg-dark-surface text-gray-900 dark:text-white focus:outline-none focus:border-brand-500 transition-colors font-medium"
+                  />
+                </div>
+                <button
+                  type="button"
+                  onClick={handleSendCode}
+                  disabled={loading || !targetEmail}
+                  className="px-3 py-2 rounded-xl bg-brand-500 hover:bg-brand-600 text-white font-bold text-xs shadow-sm transition-all flex items-center gap-1.5 flex-shrink-0 disabled:opacity-50"
+                  title="Send verification code to this address"
+                >
+                  <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
+                  <span>{sentCode ? 'Resend' : 'Send Code'}</span>
+                </button>
+              </div>
             </div>
 
             {statusMsg && (

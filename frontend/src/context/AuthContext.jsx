@@ -54,8 +54,11 @@ export const AuthProvider = ({ children }) => {
     return res.data;
   };
 
-  const sendEmailVerification = async () => {
-    const res = await api.post('/auth/send-verification');
+  const sendEmailVerification = async (customEmail) => {
+    const res = await api.post('/auth/send-verification', { email: customEmail });
+    if (res.data?.email) {
+      setUser(prev => ({ ...prev, email: res.data.email }));
+    }
     return res.data;
   };
 

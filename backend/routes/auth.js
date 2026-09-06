@@ -193,12 +193,26 @@ router.post('/send-verification', protect, async (req, res) => {
     const user = await User.findById(req.user._id);
     if (!user) return res.status(404).json({ message: 'User not found' });
 
+    // Allow updating/editing email address before sending verification
+    if (req.body.email && req.body.email.trim()) {
+      const cleanEmail = req.body.email.toLowerCase().trim();
+      if (cleanEmail !== user.email) {
+        const emailExists = await User.findOne({ email: cleanEmail, _id: { $ne: user._id } });
+        if (emailExists) {
+          return res.status(400).json({ message: 'This email address is already in use by another account' });
+        }
+        user.email = cleanEmail;
+        user.isEmailVerified = false;
+      }
+    }
+
     const code = Math.floor(100000 + Math.random() * 900000).toString();
     user.verificationCode = code;
     await user.save();
 
     res.json({
       success: true,
+      email: user.email,
       message: `Verification code sent to ${user.email}`,
       code // Provided for zero-friction verification in app
     });
@@ -242,6 +256,18 @@ router.put('/profile', protect, async (req, res) => {
   try {
     const user = await User.findById(req.user._id);
     if (!user) return res.status(404).json({ message: 'User not found' });
+
+    if (req.body.email && req.body.email.trim()) {
+      const cleanEmail = req.body.email.toLowerCase().trim();
+      if (cleanEmail !== user.email) {
+        const emailExists = await User.findOne({ email: cleanEmail, _id: { $ne: user._id } });
+        if (emailExists) {
+          return res.status(400).json({ message: 'This email is already in use by another account' });
+        }
+        user.email = cleanEmail;
+        user.isEmailVerified = false;
+      }
+    }
 
     user.name = req.body.name || user.name;
     user.targetRole = req.body.targetRole || user.targetRole;

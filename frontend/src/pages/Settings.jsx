@@ -26,6 +26,7 @@ export const Settings = () => {
 
   const [profile, setProfile] = useState({
     name: user?.name || 'Charan',
+    email: user?.email || 'charan@example.com',
     targetRole: user?.targetRole || 'Software Development Engineer (SDE)',
     placementYear: user?.placementYear || 2026,
     college: user?.college || 'Computer Science & Engineering'
@@ -152,6 +153,16 @@ export const Settings = () => {
                 type="text"
                 value={profile.name}
                 onChange={(e) => setProfile({ ...profile, name: e.target.value })}
+                className="w-full px-3 py-2 text-sm rounded-xl border border-gray-200 dark:border-dark-border bg-gray-50 dark:bg-dark-surface text-gray-900 dark:text-white focus:outline-none focus:border-brand-500"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">Email Address</label>
+              <input
+                type="email"
+                value={profile.email}
+                onChange={(e) => setProfile({ ...profile, email: e.target.value })}
                 className="w-full px-3 py-2 text-sm rounded-xl border border-gray-200 dark:border-dark-border bg-gray-50 dark:bg-dark-surface text-gray-900 dark:text-white focus:outline-none focus:border-brand-500"
               />
             </div>
