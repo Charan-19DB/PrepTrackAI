@@ -99,10 +99,10 @@ export const Dashboard = () => {
   const weakTopics = data?.weakTopics || [];
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-4 sm:space-y-6 md:space-y-8">
       {/* Student Email Verification Reminder Banner */}
       {user && !user.isEmailVerified && (
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 rounded-3xl bg-gradient-to-r from-amber-500/10 via-orange-500/10 to-amber-500/5 border border-amber-500/20 text-amber-800 dark:text-amber-300 text-xs shadow-sm animate-in fade-in">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 sm:p-4 rounded-3xl bg-gradient-to-r from-amber-500/10 via-orange-500/10 to-amber-500/5 border border-amber-500/20 text-amber-800 dark:text-amber-300 text-xs shadow-sm animate-in fade-in">
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 rounded-xl bg-amber-500/20 text-amber-500 flex items-center justify-center flex-shrink-0">
               <ShieldCheck className="w-4 h-4" />
@@ -111,14 +111,14 @@ export const Dashboard = () => {
               <span className="font-bold block text-gray-900 dark:text-white">
                 Student Account Email Verification Pending
               </span>
-              <span className="text-gray-600 dark:text-gray-400">
+              <span className="text-gray-600 dark:text-gray-400 text-[11px] sm:text-xs">
                 Verify your student identity ({user.email}) to unlock full placement analytics and official certificates.
               </span>
             </div>
           </div>
           <button
             onClick={() => setShowVerifyModal(true)}
-            className="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-extrabold text-xs shadow-md shadow-amber-500/20 transition-all flex items-center justify-center gap-1.5 flex-shrink-0"
+            className="px-3.5 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-extrabold text-xs shadow-md shadow-amber-500/20 transition-all flex items-center justify-center gap-1.5 flex-shrink-0 self-start sm:self-auto"
           >
             <ShieldCheck className="w-3.5 h-3.5" /> Verify Student Email
           </button>
@@ -126,37 +126,37 @@ export const Dashboard = () => {
       )}
 
       {/* Hero / Greeting Card */}
-      <div className="relative overflow-hidden rounded-3xl p-6 md:p-8 bg-gradient-to-r from-brand-900 via-indigo-950 to-[#0F172A] border border-brand-500/20 shadow-2xl text-white">
-        <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
-          <div className="space-y-2">
+      <div className="relative overflow-hidden rounded-3xl p-5 sm:p-6 md:p-8 bg-gradient-to-r from-brand-900 via-indigo-950 to-[#0F172A] border border-brand-500/20 shadow-2xl text-white">
+        <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-4 sm:gap-6">
+          <div className="space-y-1.5 sm:space-y-2">
             <div className="flex items-center gap-2">
-              <span className="text-2xl">👋</span>
-              <span className="text-xs uppercase tracking-widest text-brand-300 font-bold">
+              <span className="text-xl sm:text-2xl">👋</span>
+              <span className="text-[10px] sm:text-xs uppercase tracking-widest text-brand-300 font-bold">
                 Student Preparation Command Center
               </span>
             </div>
-            <h1 className="text-2xl md:text-4xl font-extrabold tracking-tight">
+            <h1 className="text-xl sm:text-2xl md:text-4xl font-extrabold tracking-tight">
               Good Morning, {user?.name || data?.user?.name || 'Student'}
             </h1>
-            <p className="text-sm md:text-base text-gray-300 max-w-xl">
+            <p className="text-xs sm:text-sm md:text-base text-gray-300 max-w-xl">
               {data?.motivationalMessage || "Welcome! Start your first topic or study session today to build momentum."}
             </p>
           </div>
 
-          <div className="flex items-center gap-4">
-            <div className="px-5 py-3 rounded-2xl bg-white/10 backdrop-blur-md border border-white/15 flex items-center gap-3">
-              <Flame className="w-7 h-7 text-orange-400 fill-orange-400 animate-bounce" />
+          <div className="flex items-center gap-2.5 sm:gap-4 flex-wrap">
+            <div className="px-3.5 sm:px-5 py-2 sm:py-3 rounded-2xl bg-white/10 backdrop-blur-md border border-white/15 flex items-center gap-2.5 sm:gap-3">
+              <Flame className="w-5 h-5 sm:w-7 sm:h-7 text-orange-400 fill-orange-400 animate-bounce flex-shrink-0" />
               <div>
-                <div className="text-xl md:text-2xl font-black">{data?.user?.streak?.currentStreak ?? 0} Days</div>
-                <div className="text-[11px] text-gray-300 uppercase tracking-wider font-semibold">Study Streak</div>
+                <div className="text-lg sm:text-xl md:text-2xl font-black">{data?.user?.streak?.currentStreak ?? 0} Days</div>
+                <div className="text-[10px] sm:text-[11px] text-gray-300 uppercase tracking-wider font-semibold">Study Streak</div>
               </div>
             </div>
 
             <Link
               to="/planner"
-              className="hidden sm:flex items-center gap-2 px-5 py-3 rounded-2xl bg-brand-500 hover:bg-brand-600 text-white font-bold text-sm shadow-lg shadow-brand-500/30 transition-all hover:scale-105"
+              className="flex items-center gap-1.5 sm:gap-2 px-4 sm:px-5 py-2 sm:py-3 rounded-2xl bg-brand-500 hover:bg-brand-600 text-white font-bold text-xs sm:text-sm shadow-lg shadow-brand-500/30 transition-all hover:scale-105"
             >
-              <Sparkles className="w-4 h-4" /> Daily Planner
+              <Sparkles className="w-3.5 h-3.5 sm:w-4 sm:h-4" /> Daily Planner
             </Link>
           </div>
         </div>
@@ -166,21 +166,21 @@ export const Dashboard = () => {
       </div>
 
       {/* KPI Cards: 5 Cards (Today's Progress, Study Time, Topics Completed, DSA, Accuracy) */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 md:gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2.5 sm:gap-3 md:gap-4">
         {/* Today's Progress */}
-        <div className="p-4 md:p-5 rounded-2xl bg-white dark:bg-dark-card border border-gray-200 dark:border-dark-border shadow-sm flex flex-col justify-between">
-          <div className="flex items-center justify-between text-gray-500 dark:text-gray-400 mb-2">
-            <span className="text-xs font-semibold uppercase tracking-wider">Today's Progress</span>
-            <TrendingUp className="w-4 h-4 text-brand-500" />
+        <div className="p-3.5 sm:p-5 rounded-2xl bg-white dark:bg-dark-card border border-gray-200 dark:border-dark-border shadow-sm flex flex-col justify-between">
+          <div className="flex items-center justify-between text-gray-500 dark:text-gray-400 mb-1.5 sm:mb-2">
+            <span className="text-[11px] sm:text-xs font-semibold uppercase tracking-wider">Today's Plan</span>
+            <TrendingUp className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-brand-500 flex-shrink-0" />
           </div>
           <div>
-            <div className="text-2xl md:text-3xl font-black text-gray-900 dark:text-white">
+            <div className="text-xl sm:text-2xl md:text-3xl font-black text-gray-900 dark:text-white">
               {metrics.todayProgressPercentage ?? 0}%
             </div>
             {/* Visual mini-bar */}
-            <div className="w-full bg-gray-100 dark:bg-dark-surface rounded-full h-2 mt-2 overflow-hidden">
+            <div className="w-full bg-gray-100 dark:bg-dark-surface rounded-full h-1.5 sm:h-2 mt-2 overflow-hidden">
               <div
-                className="bg-brand-500 h-2 rounded-full transition-all duration-500"
+                className="bg-brand-500 h-1.5 sm:h-2 rounded-full transition-all duration-500"
                 style={{ width: `${metrics.todayProgressPercentage ?? 0}%` }}
               />
             </div>
@@ -188,62 +188,62 @@ export const Dashboard = () => {
         </div>
 
         {/* Study Time */}
-        <div className="p-4 md:p-5 rounded-2xl bg-white dark:bg-dark-card border border-gray-200 dark:border-dark-border shadow-sm flex flex-col justify-between">
-          <div className="flex items-center justify-between text-gray-500 dark:text-gray-400 mb-2">
-            <span className="text-xs font-semibold uppercase tracking-wider">Study Time</span>
-            <Clock className="w-4 h-4 text-emerald-500" />
+        <div className="p-3.5 sm:p-5 rounded-2xl bg-white dark:bg-dark-card border border-gray-200 dark:border-dark-border shadow-sm flex flex-col justify-between">
+          <div className="flex items-center justify-between text-gray-500 dark:text-gray-400 mb-1.5 sm:mb-2">
+            <span className="text-[11px] sm:text-xs font-semibold uppercase tracking-wider">Study Time</span>
+            <Clock className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-emerald-500 flex-shrink-0" />
           </div>
           <div>
-            <div className="text-2xl md:text-3xl font-black text-gray-900 dark:text-white">
+            <div className="text-xl sm:text-2xl md:text-3xl font-black text-gray-900 dark:text-white">
               {metrics.totalStudyHoursFormatted || '0h 0m'}
             </div>
-            <p className="text-xs text-gray-400 mt-1 font-medium">
-              {metrics.todayStudyMinutes ?? 0} min logged today
+            <p className="text-[10px] sm:text-xs text-gray-400 mt-1 font-medium truncate">
+              {metrics.todayStudyMinutes ?? 0} min today
             </p>
           </div>
         </div>
 
         {/* Topics Completed */}
-        <div className="p-4 md:p-5 rounded-2xl bg-white dark:bg-dark-card border border-gray-200 dark:border-dark-border shadow-sm flex flex-col justify-between">
-          <div className="flex items-center justify-between text-gray-500 dark:text-gray-400 mb-2">
-            <span className="text-xs font-semibold uppercase tracking-wider">Topics Done</span>
-            <CheckCircle2 className="w-4 h-4 text-indigo-500" />
+        <div className="p-3.5 sm:p-5 rounded-2xl bg-white dark:bg-dark-card border border-gray-200 dark:border-dark-border shadow-sm flex flex-col justify-between">
+          <div className="flex items-center justify-between text-gray-500 dark:text-gray-400 mb-1.5 sm:mb-2">
+            <span className="text-[11px] sm:text-xs font-semibold uppercase tracking-wider">Topics Done</span>
+            <CheckCircle2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-indigo-500 flex-shrink-0" />
           </div>
           <div>
-            <div className="text-2xl md:text-3xl font-black text-gray-900 dark:text-white">
-              {metrics.topicsCompleted ?? 0} <span className="text-sm text-gray-400 font-normal">/ {metrics.totalTopics || 0}</span>
+            <div className="text-xl sm:text-2xl md:text-3xl font-black text-gray-900 dark:text-white">
+              {metrics.topicsCompleted ?? 0} <span className="text-xs sm:text-sm text-gray-400 font-normal">/ {metrics.totalTopics || 0}</span>
             </div>
-            <p className="text-xs text-indigo-600 dark:text-indigo-400 mt-1 font-medium">
-              {metrics.overallCompletionPercentage ?? 0}% overall syllabus
+            <p className="text-[10px] sm:text-xs text-indigo-600 dark:text-indigo-400 mt-1 font-medium truncate">
+              {metrics.overallCompletionPercentage ?? 0}% syllabus
             </p>
           </div>
         </div>
 
         {/* DSA Solved */}
-        <div className="p-4 md:p-5 rounded-2xl bg-white dark:bg-dark-card border border-gray-200 dark:border-dark-border shadow-sm flex flex-col justify-between">
-          <div className="flex items-center justify-between text-gray-500 dark:text-gray-400 mb-2">
-            <span className="text-xs font-semibold uppercase tracking-wider">DSA Problems</span>
-            <Code2 className="w-4 h-4 text-purple-500" />
+        <div className="p-3.5 sm:p-5 rounded-2xl bg-white dark:bg-dark-card border border-gray-200 dark:border-dark-border shadow-sm flex flex-col justify-between">
+          <div className="flex items-center justify-between text-gray-500 dark:text-gray-400 mb-1.5 sm:mb-2">
+            <span className="text-[11px] sm:text-xs font-semibold uppercase tracking-wider">DSA Solved</span>
+            <Code2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-purple-500 flex-shrink-0" />
           </div>
           <div>
-            <div className="text-2xl md:text-3xl font-black text-gray-900 dark:text-white">
+            <div className="text-xl sm:text-2xl md:text-3xl font-black text-gray-900 dark:text-white">
               {metrics.dsaSolvedCount ?? 0}
             </div>
-            <p className="text-xs text-gray-400 mt-1 font-medium">LeetCode & GFG</p>
+            <p className="text-[10px] sm:text-xs text-gray-400 mt-1 font-medium truncate">LeetCode & GFG</p>
           </div>
         </div>
 
         {/* Practice Accuracy */}
-        <div className="p-4 md:p-5 rounded-2xl bg-white dark:bg-dark-card border border-gray-200 dark:border-dark-border shadow-sm flex flex-col justify-between col-span-2 sm:col-span-1">
-          <div className="flex items-center justify-between text-gray-500 dark:text-gray-400 mb-2">
-            <span className="text-xs font-semibold uppercase tracking-wider">Quiz Accuracy</span>
-            <Sparkles className="w-4 h-4 text-amber-500" />
+        <div className="p-3.5 sm:p-5 rounded-2xl bg-white dark:bg-dark-card border border-gray-200 dark:border-dark-border shadow-sm flex flex-col justify-between col-span-2 sm:col-span-1">
+          <div className="flex items-center justify-between text-gray-500 dark:text-gray-400 mb-1.5 sm:mb-2">
+            <span className="text-[11px] sm:text-xs font-semibold uppercase tracking-wider">Quiz Accuracy</span>
+            <Sparkles className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-500 flex-shrink-0" />
           </div>
           <div>
-            <div className="text-2xl md:text-3xl font-black text-gray-900 dark:text-white">
+            <div className="text-xl sm:text-2xl md:text-3xl font-black text-gray-900 dark:text-white">
               {metrics.accuracyPercentage ?? 0}%
             </div>
-            <p className="text-xs text-gray-400 mt-1 font-medium">Diagnostic tier</p>
+            <p className="text-[10px] sm:text-xs text-gray-400 mt-1 font-medium">Diagnostic tier</p>
           </div>
         </div>
       </div>

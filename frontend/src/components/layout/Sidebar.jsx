@@ -22,7 +22,8 @@ import {
   Sparkles,
   ChevronLeft,
   ChevronRight,
-  ShieldCheck
+  ShieldCheck,
+  X
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
@@ -45,7 +46,7 @@ const navItems = [
   { name: 'Settings', path: '/settings', icon: Settings },
 ];
 
-export const Sidebar = ({ isOpen, setIsOpen }) => {
+export const Sidebar = ({ isOpen, setIsOpen, isMobileOpen, setIsMobileOpen }) => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
 
@@ -54,10 +55,20 @@ export const Sidebar = ({ isOpen, setIsOpen }) => {
     navigate('/login');
   };
 
+  const handleNavClick = () => {
+    if (setIsMobileOpen) {
+      setIsMobileOpen(false);
+    }
+  };
+
   return (
     <aside
-      className={`fixed top-0 left-0 z-40 h-screen transition-all duration-300 ease-in-out border-r border-gray-200 dark:border-dark-border bg-white dark:bg-[#0E131F] flex flex-col justify-between ${
-        isOpen ? 'w-64' : 'w-20'
+      className={`fixed top-0 left-0 z-50 h-screen transition-all duration-300 ease-in-out border-r border-gray-200 dark:border-dark-border bg-white dark:bg-[#0E131F] flex flex-col justify-between ${
+        /* Mobile: slide in/out drawer */
+        isMobileOpen ? 'translate-x-0 w-72 shadow-2xl' : '-translate-x-full'
+      } ${
+        /* Desktop: always visible */
+        isOpen ? 'md:translate-x-0 md:w-64' : 'md:translate-x-0 md:w-20'
       }`}
     >
       {/* Brand Header */}
@@ -67,22 +78,32 @@ export const Sidebar = ({ isOpen, setIsOpen }) => {
             <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-brand-500 to-purple-600 flex items-center justify-center text-white font-bold shadow-lg shadow-brand-500/20 flex-shrink-0">
               <Sparkles className="w-5 h-5 animate-pulse-subtle" />
             </div>
-            {isOpen && (
-              <div className="flex flex-col">
-                <span className="font-extrabold text-lg tracking-tight bg-gradient-to-r from-gray-900 to-gray-600 dark:from-white dark:to-gray-300 bg-clip-text text-transparent">
-                  PrepTrack<span className="text-brand-500">.AI</span>
-                </span>
-                <span className="text-[10px] text-gray-400 font-medium tracking-wider uppercase">
-                  CSE Placement LMS
-                </span>
-              </div>
-            )}
+            <div className={`flex flex-col ${!isOpen ? 'md:hidden' : ''}`}>
+              <span className="font-extrabold text-lg tracking-tight bg-gradient-to-r from-gray-900 to-gray-600 dark:from-white dark:to-gray-300 bg-clip-text text-transparent">
+                PrepTrack<span className="text-brand-500">.AI</span>
+              </span>
+              <span className="text-[10px] text-gray-400 font-medium tracking-wider uppercase">
+                CSE Placement LMS
+              </span>
+            </div>
           </div>
+
+          {/* Desktop Collapse Toggle */}
           <button
             onClick={() => setIsOpen(!isOpen)}
-            className="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-dark-surface transition-colors"
+            className="hidden md:flex p-1.5 rounded-lg text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-dark-surface transition-colors"
+            title={isOpen ? 'Collapse sidebar' : 'Expand sidebar'}
           >
             {isOpen ? <ChevronLeft className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+          </button>
+
+          {/* Mobile Close Button */}
+          <button
+            onClick={() => setIsMobileOpen && setIsMobileOpen(false)}
+            className="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-dark-surface transition-colors md:hidden"
+            title="Close menu"
+          >
+            <X className="w-5 h-5" />
           </button>
         </div>
 
@@ -94,6 +115,7 @@ export const Sidebar = ({ isOpen, setIsOpen }) => {
               <NavLink
                 key={item.path}
                 to={item.path}
+                onClick={handleNavClick}
                 className={({ isActive }) =>
                   `flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all group relative ${
                     isActive
@@ -103,10 +125,10 @@ export const Sidebar = ({ isOpen, setIsOpen }) => {
                 }
                 title={!isOpen ? item.name : undefined}
               >
-                <Icon className={`w-5 h-5 flex-shrink-0 transition-transform group-hover:scale-110`} />
-                {isOpen && <span className="truncate">{item.name}</span>}
-                {isOpen && item.badge && (
-                  <span className="ml-auto text-[10px] px-1.5 py-0.5 rounded-md bg-amber-500/20 text-amber-500 dark:text-amber-400 font-semibold border border-amber-500/30">
+                <Icon className="w-5 h-5 flex-shrink-0 transition-transform group-hover:scale-110" />
+                <span className={`truncate ${!isOpen ? 'md:hidden' : ''}`}>{item.name}</span>
+                {item.badge && (
+                  <span className={`ml-auto text-[10px] px-1.5 py-0.5 rounded-md bg-amber-500/20 text-amber-500 dark:text-amber-400 font-semibold border border-amber-500/30 ${!isOpen ? 'md:hidden' : ''}`}>
                     {item.badge}
                   </span>
                 )}
@@ -132,32 +154,28 @@ export const Sidebar = ({ isOpen, setIsOpen }) => {
                 </span>
               )}
             </div>
-            {isOpen && (
-              <div className="flex flex-col truncate">
-                <div className="flex items-center gap-1">
-                  <span className="text-sm font-semibold text-gray-800 dark:text-gray-200 truncate">
-                    {user?.name || user?.email?.split('@')[0] || 'Student'}
-                  </span>
-                  {user?.isEmailVerified && (
-                    <ShieldCheck className="w-3.5 h-3.5 text-emerald-500 flex-shrink-0" title="Verified CSE Student" />
-                  )}
-                </div>
-                <span className="text-xs text-brand-600 dark:text-brand-400 flex items-center gap-1 font-medium">
-                  <Flame className="w-3 h-3 text-orange-500 fill-orange-500" />
-                  {user?.streak?.currentStreak ?? 0}d Streak
+            <div className={`flex flex-col truncate ${!isOpen ? 'md:hidden' : ''}`}>
+              <div className="flex items-center gap-1">
+                <span className="text-sm font-semibold text-gray-800 dark:text-gray-200 truncate">
+                  {user?.name || user?.email?.split('@')[0] || 'Student'}
                 </span>
+                {user?.isEmailVerified && (
+                  <ShieldCheck className="w-3.5 h-3.5 text-emerald-500 flex-shrink-0" title="Verified CSE Student" />
+                )}
               </div>
-            )}
+              <span className="text-xs text-brand-600 dark:text-brand-400 flex items-center gap-1 font-medium">
+                <Flame className="w-3 h-3 text-orange-500 fill-orange-500" />
+                {user?.streak?.currentStreak ?? 0}d Streak
+              </span>
+            </div>
           </div>
-          {isOpen && (
-            <button
-              onClick={handleLogout}
-              title="Logout"
-              className="p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors"
-            >
-              <LogOut className="w-4 h-4" />
-            </button>
-          )}
+          <button
+            onClick={handleLogout}
+            title="Logout"
+            className={`p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors ${!isOpen ? 'md:hidden' : ''}`}
+          >
+            <LogOut className="w-4 h-4" />
+          </button>
         </div>
       </div>
     </aside>

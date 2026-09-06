@@ -28,28 +28,28 @@ export const PomodoroFloatingTimer = () => {
 
   if (isMinimized) {
     return (
-      <div className="fixed bottom-6 right-6 z-40">
+      <div className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-40">
         <button
           onClick={() => setIsMinimized(false)}
-          className={`flex items-center gap-3 px-4 py-2.5 rounded-2xl shadow-xl backdrop-blur-md border transition-all ${
+          className={`flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-2 sm:py-2.5 rounded-2xl shadow-xl backdrop-blur-md border transition-all ${
             isActive
               ? 'bg-brand-600/90 text-white border-brand-400/30 shadow-brand-500/25 animate-pulse'
               : 'bg-white/90 dark:bg-dark-card/90 text-gray-800 dark:text-gray-200 border-gray-200 dark:border-dark-border hover:border-brand-500'
           }`}
         >
-          <Timer className="w-5 h-5 text-amber-400" />
+          <Timer className="w-4 h-4 sm:w-5 sm:h-5 text-amber-400" />
           <div className="flex flex-col text-left">
-            <span className="font-mono text-sm font-bold tracking-wider">{formatTime(secondsLeft)}</span>
-            <span className="text-[10px] text-gray-400 dark:text-gray-400 truncate max-w-[120px]">{topic || subject}</span>
+            <span className="font-mono text-xs sm:text-sm font-bold tracking-wider">{formatTime(secondsLeft)}</span>
+            <span className="text-[10px] text-gray-400 dark:text-gray-400 truncate max-w-[90px] sm:max-w-[120px]">{topic || subject}</span>
           </div>
-          <ChevronUp className="w-4 h-4 ml-1 opacity-70" />
+          <ChevronUp className="w-3.5 h-3.5 sm:w-4 sm:h-4 ml-0.5 sm:ml-1 opacity-70" />
         </button>
       </div>
     );
   }
 
   return (
-    <div className="fixed bottom-6 right-6 z-40 w-80 bg-white dark:bg-[#111827] rounded-2xl shadow-2xl border border-gray-200 dark:border-dark-border p-4 transition-all">
+    <div className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-40 w-[calc(100vw-2rem)] max-w-xs sm:w-80 bg-white dark:bg-[#111827] rounded-2xl shadow-2xl border border-gray-200 dark:border-dark-border p-4 transition-all">
       {/* Header */}
       <div className="flex items-center justify-between pb-3 border-b border-gray-100 dark:border-dark-border mb-3">
         <div className="flex items-center gap-2">
