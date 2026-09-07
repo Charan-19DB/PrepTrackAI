@@ -19,10 +19,20 @@ import {
   BookOpen,
   Search,
   CheckSquare,
-  Square
+  Square,
+  ExternalLink,
+  Globe,
+  GraduationCap
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import api from '../api/axiosClient';
+import TeachMeAgainModal from '../components/common/TeachMeAgainModal';
+
+const Youtube = ({ className = 'w-4 h-4' }) => (
+  <svg className={className} viewBox="0 0 24 24" fill="currentColor">
+    <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
+  </svg>
+);
 
 export const ALL_22_SUBJECTS = [
   { name: 'Operating Systems', category: 'Core CS' },
@@ -51,6 +61,75 @@ export const ALL_22_SUBJECTS = [
 
 const QUESTION_COUNTS = [20, 25, 30];
 
+/**
+ * Helper to dynamically suggest top verified educational YouTube channels & webpages for any concept
+ */
+export const getSuggestionsForConcept = (subject = '', topic = '') => {
+  const subj = (subject || '').toLowerCase();
+  const top = topic || subject || 'Fundamentals';
+
+  let channel = 'Gate Smashers';
+  let channelUrl = 'https://www.youtube.com/@GateSmashers';
+  let webSource = 'GeeksforGeeks';
+
+  if (subj.includes('dsa') || subj.includes('algorithm') || subj.includes('data structure')) {
+    channel = 'take U forward (Striver)';
+    channelUrl = 'https://www.youtube.com/@takeUforward';
+    webSource = 'LeetCode / GeeksforGeeks';
+  } else if (subj.includes('dbms') || subj.includes('sql') || subj.includes('database')) {
+    channel = 'Gate Smashers / Alex The Analyst';
+    channelUrl = 'https://www.youtube.com/@GateSmashers';
+    webSource = 'W3Schools SQL / GeeksforGeeks';
+  } else if (subj.includes('network') || subj.includes('cn')) {
+    channel = 'NetworkChuck';
+    channelUrl = 'https://www.youtube.com/@NetworkChuck';
+    webSource = 'GeeksforGeeks Computer Networks';
+  } else if (subj.includes('os') || subj.includes('operating')) {
+    channel = 'Gate Smashers (Varun Singla)';
+    channelUrl = 'https://www.youtube.com/@GateSmashers';
+    webSource = 'GeeksforGeeks Operating Systems';
+  } else if (subj.includes('system design') || subj.includes('distributed')) {
+    channel = 'ByteByteGo (Alex Xu)';
+    channelUrl = 'https://www.youtube.com/@ByteByteGo';
+    webSource = 'System Design Primer (GitHub)';
+  } else if (subj.includes('aptitude') || subj.includes('reasoning') || subj.includes('verbal')) {
+    channel = 'CareerRide / Feel Free to Learn';
+    channelUrl = 'https://www.youtube.com/@CareerRide';
+    webSource = 'IndiaBIX Aptitude & Reasoning';
+  } else if (subj.includes('web') || subj.includes('react') || subj.includes('javascript')) {
+    channel = 'Web Dev Simplified';
+    channelUrl = 'https://www.youtube.com/@WebDevSimplified';
+    webSource = 'MDN Web Docs';
+  } else if (subj.includes('python')) {
+    channel = 'Chai aur Code / freeCodeCamp';
+    channelUrl = 'https://www.youtube.com/@chaiaurcode';
+    webSource = 'Real Python / W3Schools';
+  } else if (subj.includes('java')) {
+    channel = 'Kunal Kushwaha';
+    channelUrl = 'https://www.youtube.com/@KunalKushwaha';
+    webSource = 'Baeldung on Java';
+  } else if (subj.includes('ai') || subj.includes('machine learning') || subj.includes('deep learning')) {
+    channel = 'StatQuest with Josh Starmer';
+    channelUrl = 'https://www.youtube.com/@statquest';
+    webSource = 'DeepLearning.AI / Scikit-Learn Docs';
+  } else if (subj.includes('cloud') || subj.includes('devops')) {
+    channel = 'TechWorld with Nana';
+    channelUrl = 'https://www.youtube.com/@TechWorldwithNana';
+    webSource = 'Kubernetes & Docker Official Docs';
+  }
+
+  const youtubeSearchUrl = `https://www.youtube.com/results?search_query=${encodeURIComponent(`${subject} ${top} lecture ${channel}`)}`;
+  const webSearchUrl = `https://www.geeksforgeeks.org/search/?q=${encodeURIComponent(`${subject} ${top}`)}`;
+
+  return {
+    channel,
+    channelUrl,
+    webSource,
+    youtubeUrl: youtubeSearchUrl,
+    webUrl: webSearchUrl
+  };
+};
+
 export const PracticeHub = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const initialSubject = searchParams.get('subject') || 'Operating Systems';
@@ -62,6 +141,11 @@ export const PracticeHub = () => {
   const [selectedCount, setSelectedCount] = useState(25);
   const [selectedDifficulty, setSelectedDifficulty] = useState('Medium');
   const [selectedType, setSelectedType] = useState('All');
+
+  // Teach Me Again Modal State
+  const [teachModalOpen, setTeachModalOpen] = useState(false);
+  const [teachModalSubject, setTeachModalSubject] = useState('Operating Systems');
+  const [teachModalTopic, setTeachModalTopic] = useState('Deadlocks');
 
   // Active Quiz State
   const [questions, setQuestions] = useState([]);
@@ -126,6 +210,12 @@ export const PracticeHub = () => {
     if (matching.length > 0) {
       setSelectedSubjects(matching);
     }
+  };
+
+  const openTeachModal = (subj, top) => {
+    setTeachModalSubject(subj || 'Operating Systems');
+    setTeachModalTopic(top || 'Deadlocks');
+    setTeachModalOpen(true);
   };
 
   const startMultiSubjectPractice = async () => {
@@ -256,6 +346,7 @@ export const PracticeHub = () => {
   }, [subjectSearch]);
 
   const currentQ = questions.length > 0 ? questions[currentIndex] : null;
+  const currentSuggestion = currentQ ? getSuggestionsForConcept(currentQ.subject, currentQ.topic) : null;
   const correctCount = Object.values(answersHistory).filter(a => a.isCorrect).length;
   const attemptedCount = Object.keys(answersHistory).length;
 
@@ -276,6 +367,15 @@ export const PracticeHub = () => {
         </div>
 
         <div className="flex items-center gap-3">
+          {/* Direct Link to YouTube Channels & Web Docs */}
+          <Link
+            to="/resources"
+            className="flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/60 text-rose-600 dark:text-rose-400 font-bold text-xs hover:bg-rose-100 transition-all shadow-sm"
+          >
+            <Youtube className="w-4 h-4 text-rose-500" />
+            <span>📺 Video Channels & Docs</span>
+          </Link>
+
           <button
             onClick={() => setShowStudio(prev => !prev)}
             className="flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-gradient-to-r from-brand-600 to-indigo-600 hover:from-brand-500 hover:to-indigo-500 text-white font-bold text-xs shadow-lg shadow-brand-500/25 transition-all"
@@ -406,7 +506,7 @@ export const PracticeHub = () => {
             </div>
 
             {/* 22 Subjects Multiple Choice Grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2.5 max-h-80 overflow-y-auto pr-1">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2.5 max-h-72 overflow-y-auto pr-1">
               {filteredSubjects.map((subj) => {
                 const isSelected = selectedSubjects.includes(subj.name);
                 return (
@@ -437,6 +537,54 @@ export const PracticeHub = () => {
                   </button>
                 );
               })}
+            </div>
+
+            {/* SUGGESTED YOUTUBE CHANNELS & WEBPAGES FOR SELECTED SUBJECTS */}
+            <div className="p-4 rounded-2xl bg-gradient-to-r from-rose-500/5 via-indigo-500/5 to-purple-500/5 border border-rose-500/20 space-y-2.5">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2 text-xs font-bold text-gray-900 dark:text-white">
+                  <Youtube className="w-4 h-4 text-rose-500" />
+                  <span>Suggested YouTube Channels & Web Docs for Selected Subjects:</span>
+                </div>
+                <Link
+                  to="/resources"
+                  className="text-[11px] font-bold text-rose-600 dark:text-rose-400 hover:underline flex items-center gap-1"
+                >
+                  <span>Open Full Resource Hub</span>
+                  <ArrowRight className="w-3 h-3" />
+                </Link>
+              </div>
+
+              <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
+                {selectedSubjects.slice(0, 4).map((s) => {
+                  const sugg = getSuggestionsForConcept(s, '');
+                  return (
+                    <div
+                      key={s}
+                      className="px-3 py-2 rounded-xl bg-white dark:bg-dark-card border border-gray-200 dark:border-dark-border text-xs flex items-center gap-2.5 shadow-sm flex-shrink-0"
+                    >
+                      <div>
+                        <div className="font-bold text-gray-800 dark:text-gray-200 text-[11px] truncate max-w-[130px]">
+                          {s}
+                        </div>
+                        <div className="text-[10px] text-gray-400 flex items-center gap-1">
+                          <span>{sugg.channel}</span>
+                        </div>
+                      </div>
+
+                      <a
+                        href={sugg.youtubeUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="px-2 py-1 rounded-lg bg-rose-600 hover:bg-rose-700 text-white font-bold text-[10px] flex items-center gap-1"
+                      >
+                        <Youtube className="w-2.5 h-2.5" />
+                        <span>Watch</span>
+                      </a>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
           </div>
 
@@ -567,6 +715,52 @@ export const PracticeHub = () => {
             </div>
           </div>
 
+          {/* SUGGESTIONS ON COMPLETION SCREEN */}
+          <div className="p-5 rounded-3xl bg-gray-50 dark:bg-dark-surface border border-gray-200 dark:border-dark-border max-w-2xl mx-auto text-left space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2 text-xs font-bold text-gray-900 dark:text-white">
+                <GraduationCap className="w-4 h-4 text-purple-600" />
+                <span>Suggested Webpages & YouTube Channels to Revise:</span>
+              </div>
+              <Link to="/resources" className="text-xs font-bold text-purple-600 hover:underline">
+                View All →
+              </Link>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+              {selectedSubjects.map(s => {
+                const sugg = getSuggestionsForConcept(s, '');
+                return (
+                  <div key={s} className="p-3 rounded-2xl bg-white dark:bg-dark-card border border-gray-100 dark:border-dark-border flex items-center justify-between gap-2">
+                    <div className="truncate">
+                      <div className="text-xs font-bold text-gray-800 dark:text-gray-200 truncate">{s}</div>
+                      <div className="text-[10px] text-gray-400">{sugg.channel}</div>
+                    </div>
+                    <div className="flex items-center gap-1.5 flex-shrink-0">
+                      <a
+                        href={sugg.youtubeUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="p-1.5 rounded-lg bg-rose-600 text-white hover:bg-rose-700"
+                        title="Watch Lecture on YouTube"
+                      >
+                        <Youtube className="w-3.5 h-3.5" />
+                      </a>
+                      <a
+                        href={sugg.webUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="p-1.5 rounded-lg bg-indigo-600 text-white hover:bg-indigo-700"
+                        title="Read GeeksforGeeks Article"
+                      >
+                        <Globe className="w-3.5 h-3.5" />
+                      </a>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
           <div className="flex flex-wrap justify-center gap-3 pt-2">
             <button
               onClick={() => {
@@ -678,6 +872,54 @@ export const PracticeHub = () => {
             </div>
           </div>
 
+          {/* SUGGESTED LEARNING STRIP FOR ACTIVE QUESTION */}
+          {currentSuggestion && (
+            <div className="p-3.5 rounded-2xl bg-gradient-to-r from-purple-500/10 via-indigo-500/10 to-rose-500/10 border border-purple-500/20 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-sm">
+              <div className="flex items-center gap-2">
+                <Sparkles className="w-4 h-4 text-purple-600 dark:text-purple-400 flex-shrink-0" />
+                <span className="text-xs font-bold text-gray-800 dark:text-gray-200">
+                  Suggestions to learn <span className="text-purple-600 dark:text-purple-400 underline">{currentQ.topic || currentQ.subject}</span>:
+                </span>
+              </div>
+
+              <div className="flex items-center gap-2 flex-wrap">
+                <a
+                  href={currentSuggestion.youtubeUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-[11px] font-bold shadow-sm transition-all"
+                  title={`Search video lectures on YouTube by ${currentSuggestion.channel}`}
+                >
+                  <Youtube className="w-3.5 h-3.5" />
+                  <span>Watch {currentSuggestion.channel}</span>
+                  <ExternalLink className="w-3 h-3" />
+                </a>
+
+                <a
+                  href={currentSuggestion.webUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-[11px] font-bold shadow-sm transition-all"
+                  title={`Search article on ${currentSuggestion.webSource}`}
+                >
+                  <Globe className="w-3.5 h-3.5" />
+                  <span>Read {currentSuggestion.webSource}</span>
+                  <ExternalLink className="w-3 h-3" />
+                </a>
+
+                <button
+                  type="button"
+                  onClick={() => openTeachModal(currentQ.subject, currentQ.topic || currentQ.subject)}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white text-[11px] font-bold shadow-sm transition-all"
+                  title="Generate plain-English analogy, code trace, common pitfalls, and 8-step roadmap"
+                >
+                  <Sparkles className="w-3 h-3" />
+                  <span>✨ Teach Me Again</span>
+                </button>
+              </div>
+            </div>
+          )}
+
           {/* Question Body */}
           <div className="space-y-4">
             <h2 className="text-base sm:text-lg font-bold text-gray-900 dark:text-white leading-relaxed">
@@ -729,7 +971,7 @@ export const PracticeHub = () => {
 
           {/* Explanation Banner */}
           {submitted && (
-            <div className={`p-5 rounded-3xl border space-y-3 animate-in fade-in ${
+            <div className={`p-5 rounded-3xl border space-y-4 animate-in fade-in ${
               result?.isCorrect
                 ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-900 dark:text-emerald-200'
                 : 'bg-rose-500/10 border-rose-500/20 text-rose-900 dark:text-rose-200'
@@ -765,6 +1007,46 @@ export const PracticeHub = () => {
                 <strong>Technical Explanation: </strong>
                 {result?.explanation || currentQ.explanation || 'Detailed answer logic based on CSE placement principles.'}
               </div>
+
+              {/* RECOMMENDED RESOURCES IN EXPLANATION */}
+              {currentSuggestion && (
+                <div className="pt-3 border-t border-inherit/40 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 text-xs">
+                  <span className="font-bold flex items-center gap-1.5 opacity-90">
+                    <GraduationCap className="w-4 h-4 text-purple-600" />
+                    Recommended Suggestions to Master this Concept:
+                  </span>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <a
+                      href={currentSuggestion.youtubeUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="font-bold text-rose-600 dark:text-rose-400 hover:underline flex items-center gap-1"
+                    >
+                      <Youtube className="w-3.5 h-3.5" />
+                      <span>{currentSuggestion.channel} Video ↗</span>
+                    </a>
+                    <span className="opacity-40">•</span>
+                    <a
+                      href={currentSuggestion.webUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="font-bold text-indigo-600 dark:text-indigo-400 hover:underline flex items-center gap-1"
+                    >
+                      <Globe className="w-3.5 h-3.5" />
+                      <span>{currentSuggestion.webSource} Article ↗</span>
+                    </a>
+                    <span className="opacity-40">•</span>
+                    <button
+                      type="button"
+                      onClick={() => openTeachModal(currentQ.subject, currentQ.topic || currentQ.subject)}
+                      className="font-bold text-purple-600 dark:text-purple-400 hover:underline flex items-center gap-1"
+                    >
+                      <Sparkles className="w-3.5 h-3.5" />
+                      <span>AI Analogy & Roadmap</span>
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
@@ -798,6 +1080,14 @@ export const PracticeHub = () => {
           </div>
         </div>
       )}
+
+      {/* Teach Me Again AI Pedagogical Modal */}
+      <TeachMeAgainModal
+        isOpen={teachModalOpen}
+        onClose={() => setTeachModalOpen(false)}
+        initialSubject={teachModalSubject}
+        initialTopic={teachModalTopic}
+      />
     </div>
   );
 };
