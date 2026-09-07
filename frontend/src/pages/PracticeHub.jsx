@@ -1,42 +1,52 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, Link } from 'react-router-dom';
 import {
+  Sparkles,
   CheckCircle2,
-  AlertCircle,
-  HelpCircle,
+  XCircle,
   Clock,
   RotateCcw,
-  Sparkles,
+  BookMarked,
   ArrowRight,
-  ArrowLeft,
-  BookmarkPlus,
-  BarChart2,
-  Check,
+  Sliders,
+  AlertCircle,
   X,
-  Plus,
-  RefreshCw,
-  Cpu,
   Layers,
+  HelpCircle,
   Filter,
   Zap,
   Target,
   BookOpen,
   Search,
-  Sliders
+  CheckSquare,
+  Square
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import api from '../api/axiosClient';
 
-const POPULAR_SUBJECTS = [
-  'Operating Systems',
-  'DBMS and SQL',
-  'Computer Networks',
-  'Data Structures and Algorithms',
-  'OOP',
-  'Python Programming',
-  'Java Programming',
-  'Quantitative Aptitude',
-  'Logical Reasoning'
+export const ALL_22_SUBJECTS = [
+  { name: 'Operating Systems', category: 'Core CS' },
+  { name: 'DBMS and SQL', category: 'Core CS' },
+  { name: 'Computer Networks', category: 'Core CS' },
+  { name: 'Data Structures and Algorithms', category: 'Core CS' },
+  { name: 'OOP', category: 'Core CS' },
+  { name: 'Python Programming', category: 'Programming' },
+  { name: 'Java Programming', category: 'Programming' },
+  { name: 'C Programming', category: 'Programming' },
+  { name: 'Quantitative Aptitude', category: 'Aptitude & Reasoning' },
+  { name: 'Logical Reasoning', category: 'Aptitude & Reasoning' },
+  { name: 'Verbal Ability', category: 'Aptitude & Reasoning' },
+  { name: 'AI and Machine Learning', category: 'AI & Data' },
+  { name: 'Deep Learning', category: 'AI & Data' },
+  { name: 'Generative AI', category: 'AI & Data' },
+  { name: 'RAG', category: 'AI & Data' },
+  { name: 'AI Agents', category: 'AI & Data' },
+  { name: 'Fine Tuning', category: 'AI & Data' },
+  { name: 'Web Development', category: 'Engineering' },
+  { name: 'Software Engineering', category: 'Engineering' },
+  { name: 'Cloud, DevOps and Tools', category: 'Engineering' },
+  { name: 'Cybersecurity', category: 'Engineering' },
+  { name: 'Blockchain', category: 'Engineering' }
 ];
 
 const QUESTION_COUNTS = [20, 25, 30];
@@ -44,18 +54,14 @@ const QUESTION_COUNTS = [20, 25, 30];
 export const PracticeHub = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const initialSubject = searchParams.get('subject') || 'Operating Systems';
-  const initialTopic = searchParams.get('topic') || '';
 
-  // Studio / Selection State
-  const [showStudio, setShowStudio] = useState(!initialTopic);
-  const [selectedSubject, setSelectedSubject] = useState(initialSubject);
-  const [selectedConcept, setSelectedConcept] = useState(initialTopic);
+  // Multi-Subject Studio Selection State
+  const [showStudio, setShowStudio] = useState(true);
+  const [selectedSubjects, setSelectedSubjects] = useState([initialSubject]);
+  const [subjectSearch, setSubjectSearch] = useState('');
   const [selectedCount, setSelectedCount] = useState(25);
   const [selectedDifficulty, setSelectedDifficulty] = useState('Medium');
   const [selectedType, setSelectedType] = useState('All');
-  const [conceptSearch, setConceptSearch] = useState('');
-  const [availableConcepts, setAvailableConcepts] = useState([]);
-  const [loadingConcepts, setLoadingConcepts] = useState(false);
 
   // Active Quiz State
   const [questions, setQuestions] = useState([]);
@@ -72,19 +78,7 @@ export const PracticeHub = () => {
   const [errorMessage, setErrorMessage] = useState('');
   const [answersHistory, setAnswersHistory] = useState({}); // { [index]: { selected, isCorrect, submitted } }
 
-  // Load concepts whenever selectedSubject changes
   useEffect(() => {
-    fetchConceptsForSubject(selectedSubject);
-  }, [selectedSubject]);
-
-  // If initial URL had topic and subject, auto-load or generate
-  useEffect(() => {
-    if (initialSubject && initialTopic) {
-      setSelectedSubject(initialSubject);
-      setSelectedConcept(initialTopic);
-      setShowStudio(false);
-      startConceptPractice(initialSubject, initialTopic, 25);
-    }
     fetchStats();
   }, []);
 
@@ -97,23 +91,6 @@ export const PracticeHub = () => {
     return () => clearInterval(timer);
   }, [submitted, currentIndex, quizCompleted, questions.length]);
 
-  const fetchConceptsForSubject = async (subjectName) => {
-    try {
-      setLoadingConcepts(true);
-      const res = await api.get(`/practice/concepts?subject=${encodeURIComponent(subjectName)}`);
-      const list = Array.isArray(res.data) ? res.data : [];
-      setAvailableConcepts(list);
-      // Auto-select first concept if none selected
-      if (list.length > 0 && (!selectedConcept || !list.some(c => c.name === selectedConcept))) {
-        setSelectedConcept(list[0].name);
-      }
-    } catch (err) {
-      console.error('Failed to load concepts for subject', err);
-    } finally {
-      setLoadingConcepts(false);
-    }
-  };
-
   const fetchStats = async () => {
     try {
       const res = await api.get('/practice/stats');
@@ -123,13 +100,37 @@ export const PracticeHub = () => {
     }
   };
 
-  const startConceptPractice = async (subjectToUse, conceptToUse, countToUse) => {
-    const subj = subjectToUse || selectedSubject;
-    const concept = conceptToUse || selectedConcept;
-    const qCount = countToUse || selectedCount;
+  // Toggle individual subject in multi-select array
+  const toggleSubject = (name) => {
+    setSelectedSubjects(prev => {
+      if (prev.includes(name)) {
+        if (prev.length === 1) return prev; // Keep at least one selected
+        return prev.filter(s => s !== name);
+      } else {
+        return [...prev, name];
+      }
+    });
+  };
 
-    if (!concept) {
-      setErrorMessage('Please choose a concept to practice.');
+  // Quick preset handlers
+  const handleSelectAll = () => {
+    setSelectedSubjects(ALL_22_SUBJECTS.map(s => s.name));
+  };
+
+  const handleClearToDefault = () => {
+    setSelectedSubjects(['Operating Systems']);
+  };
+
+  const handleSelectPreset = (categoryName) => {
+    const matching = ALL_22_SUBJECTS.filter(s => s.category === categoryName).map(s => s.name);
+    if (matching.length > 0) {
+      setSelectedSubjects(matching);
+    }
+  };
+
+  const startMultiSubjectPractice = async () => {
+    if (selectedSubjects.length === 0) {
+      setErrorMessage('Please select at least one subject to practice.');
       return;
     }
 
@@ -140,9 +141,8 @@ export const PracticeHub = () => {
       setAnswersHistory({});
 
       const res = await api.post('/practice/generate-fresh', {
-        subject: subj,
-        topic: concept,
-        count: qCount,
+        subjects: selectedSubjects,
+        count: selectedCount,
         difficulty: selectedDifficulty,
         type: selectedType
       });
@@ -157,9 +157,8 @@ export const PracticeHub = () => {
         setSeconds(0);
         setMistakeAdded(false);
         setShowStudio(false);
-        setSearchParams({ subject: subj, topic: concept });
       } else {
-        setErrorMessage('Could not generate questions for this concept. Please try again.');
+        setErrorMessage('Could not generate questions. Please try again.');
       }
     } catch (err) {
       console.error('Failed to generate practice set', err);
@@ -210,7 +209,7 @@ export const PracticeHub = () => {
         question: currentQ.question,
         myAnswer: selectedAnswer,
         correctAnswer: currentQ.correctAnswer,
-        whyWrong: `Missed during ${selectedConcept || currentQ.topic} drill test`,
+        whyWrong: `Missed during ${currentQ.subject} practice set`,
         subject: currentQ.subject,
         topic: currentQ.topic,
         difficulty: currentQ.difficulty
@@ -246,18 +245,17 @@ export const PracticeHub = () => {
     }
   };
 
-  // Filter available concepts by search query
-  const filteredConcepts = useMemo(() => {
-    if (!conceptSearch.trim()) return availableConcepts;
-    return availableConcepts.filter(c => 
-      c.name.toLowerCase().includes(conceptSearch.toLowerCase()) ||
-      (c.subtopics && c.subtopics.some(s => s.toLowerCase().includes(conceptSearch.toLowerCase())))
+  // Filter subjects in search
+  const filteredSubjects = useMemo(() => {
+    if (!subjectSearch.trim()) return ALL_22_SUBJECTS;
+    const q = subjectSearch.toLowerCase();
+    return ALL_22_SUBJECTS.filter(s =>
+      s.name.toLowerCase().includes(q) ||
+      s.category.toLowerCase().includes(q)
     );
-  }, [availableConcepts, conceptSearch]);
+  }, [subjectSearch]);
 
   const currentQ = questions.length > 0 ? questions[currentIndex] : null;
-
-  // Compute total correct in active drill
   const correctCount = Object.values(answersHistory).filter(a => a.isCorrect).length;
   const attemptedCount = Object.keys(answersHistory).length;
 
@@ -267,13 +265,13 @@ export const PracticeHub = () => {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2 text-brand-600 dark:text-brand-400 text-xs font-bold uppercase tracking-wider">
-            <CheckCircle2 className="w-4 h-4" /> Concept Mastery Studio & Practice Hub
+            <CheckCircle2 className="w-4 h-4" /> Practice Hub & Subject Mastery Studio
           </div>
           <h1 className="text-2xl md:text-3xl font-black text-gray-900 dark:text-white mt-1">
             Placement Practice & Quizzes
           </h1>
           <p className="text-sm text-gray-500 dark:text-gray-400">
-            Generate 20 to 30 comprehensive questions focused strictly on a single concept at a time
+            Select one or multiple subjects from all 22 CSE subjects and generate 20 to 30 targeted questions
           </p>
         </div>
 
@@ -283,7 +281,7 @@ export const PracticeHub = () => {
             className="flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-gradient-to-r from-brand-600 to-indigo-600 hover:from-brand-500 hover:to-indigo-500 text-white font-bold text-xs shadow-lg shadow-brand-500/25 transition-all"
           >
             <Sliders className="w-4 h-4" />
-            <span>{showStudio ? 'Close Concept Picker' : '🎯 Choose Concept (20–30 Qs)'}</span>
+            <span>{showStudio ? 'Hide Subject Picker' : '🎯 Choose Subjects (20–30 Qs)'}</span>
           </button>
 
           {stats && (
@@ -320,124 +318,139 @@ export const PracticeHub = () => {
       )}
 
       {/* ========================================================================= */}
-      {/* CONCEPT SELECTION STUDIO ("Multiple choice for the concepts") */}
+      {/* MULTI-SUBJECT SELECTION STUDIO (ALL 22 SUBJECTS) */}
       {/* ========================================================================= */}
       {showStudio && (
         <div className="rounded-3xl bg-white dark:bg-dark-card border border-brand-500/30 p-6 md:p-8 shadow-xl space-y-6 animate-in fade-in">
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-2 border-b border-gray-100 dark:border-dark-border/60 pb-4">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 border-b border-gray-100 dark:border-dark-border/60 pb-4">
             <div>
               <h2 className="text-lg font-black text-gray-900 dark:text-white flex items-center gap-2">
                 <Target className="w-5 h-5 text-brand-500" />
-                Select Concept & Question Volume (20 to 30 Questions)
+                Select Subjects & Question Volume (20 to 30 Questions)
               </h2>
               <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-                All questions in this test will be exclusively generated on the concept you pick. No unrelated concepts mixed in.
+                Choose one or multiple subjects from all 22 subjects. Questions will be generated exclusively across your selection.
               </p>
             </div>
-          </div>
 
-          {/* STEP 1: Select Subject */}
-          <div className="space-y-2.5">
-            <label className="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 block">
-              Step 1: Choose Subject
-            </label>
-            <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none">
-              {POPULAR_SUBJECTS.map((subj) => (
-                <button
-                  key={subj}
-                  onClick={() => setSelectedSubject(subj)}
-                  className={`px-3.5 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all ${
-                    selectedSubject === subj
-                      ? 'bg-brand-500 text-white shadow-md shadow-brand-500/25'
-                      : 'bg-gray-100 dark:bg-dark-surface text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-dark-border'
-                  }`}
-                >
-                  {subj}
-                </button>
-              ))}
+            <div className="flex items-center gap-2">
+              <span className="px-3 py-1 rounded-xl bg-brand-500/10 text-brand-600 dark:text-brand-400 font-mono font-bold text-xs">
+                {selectedSubjects.length} of 22 Selected
+              </span>
             </div>
           </div>
 
-          {/* STEP 2: Choose Concept (Multiple-choice format) */}
+          {/* STEP 1: Choose Subject(s) (Multi-Select across all 22 Subjects) */}
           <div className="space-y-3">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <label className="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 block">
-                Step 2: Choose Concept (Multiple Choice Options)
+                Step 1: Choose Subject(s) — Click to Toggle Multiple
               </label>
-              <div className="relative w-full sm:w-64">
-                <Search className="w-3.5 h-3.5 text-gray-400 absolute left-3 top-2.5" />
-                <input
-                  type="text"
-                  value={conceptSearch}
-                  onChange={(e) => setConceptSearch(e.target.value)}
-                  placeholder="Filter concepts..."
-                  className="w-full pl-8 pr-3 py-1.5 rounded-xl border border-gray-200 dark:border-dark-border bg-gray-50 dark:bg-dark-surface text-xs text-gray-900 dark:text-white focus:outline-none"
-                />
+
+              {/* Quick Presets & Search */}
+              <div className="flex items-center gap-2 flex-wrap">
+                <button
+                  type="button"
+                  onClick={handleSelectAll}
+                  className="px-2.5 py-1 rounded-lg bg-gray-100 dark:bg-dark-surface hover:bg-gray-200 text-gray-700 dark:text-gray-300 text-[11px] font-bold"
+                >
+                  Select All 22
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleSelectPreset('Core CS')}
+                  className="px-2.5 py-1 rounded-lg bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 text-[11px] font-bold"
+                >
+                  Core CS (5)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleSelectPreset('Programming')}
+                  className="px-2.5 py-1 rounded-lg bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 text-[11px] font-bold"
+                >
+                  Programming (3)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleSelectPreset('Aptitude & Reasoning')}
+                  className="px-2.5 py-1 rounded-lg bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400 text-[11px] font-bold"
+                >
+                  Aptitude (3)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleSelectPreset('AI & Data')}
+                  className="px-2.5 py-1 rounded-lg bg-purple-50 dark:bg-purple-950/40 text-purple-600 dark:text-purple-400 text-[11px] font-bold"
+                >
+                  AI & Modern (6)
+                </button>
+                <button
+                  type="button"
+                  onClick={handleClearToDefault}
+                  className="px-2.5 py-1 rounded-lg bg-gray-100 dark:bg-dark-surface text-gray-500 text-[11px] font-bold"
+                >
+                  Reset
+                </button>
+
+                <div className="relative w-full sm:w-56 mt-2 sm:mt-0">
+                  <Search className="w-3.5 h-3.5 text-gray-400 absolute left-3 top-2.5" />
+                  <input
+                    type="text"
+                    value={subjectSearch}
+                    onChange={(e) => setSubjectSearch(e.target.value)}
+                    placeholder="Search 22 subjects..."
+                    className="w-full pl-8 pr-3 py-1.5 rounded-xl border border-gray-200 dark:border-dark-border bg-gray-50 dark:bg-dark-surface text-xs text-gray-900 dark:text-white focus:outline-none"
+                  />
+                </div>
               </div>
             </div>
 
-            {loadingConcepts ? (
-              <div className="h-32 rounded-2xl bg-gray-100 dark:bg-dark-surface animate-pulse flex items-center justify-center text-xs text-gray-400">
-                Loading {selectedSubject} concepts...
-              </div>
-            ) : filteredConcepts.length === 0 ? (
-              <div className="p-6 rounded-2xl bg-gray-50 dark:bg-dark-surface text-center text-xs text-gray-400">
-                No concepts found matching "{conceptSearch}". Try another term.
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5 max-h-64 overflow-y-auto pr-1">
-                {filteredConcepts.map((conceptItem) => {
-                  const isSelected = selectedConcept === conceptItem.name;
-                  return (
-                    <button
-                      key={conceptItem._id || conceptItem.name}
-                      onClick={() => setSelectedConcept(conceptItem.name)}
-                      className={`p-3.5 rounded-2xl border text-left transition-all flex items-start justify-between gap-2 group ${
+            {/* 22 Subjects Multiple Choice Grid */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2.5 max-h-80 overflow-y-auto pr-1">
+              {filteredSubjects.map((subj) => {
+                const isSelected = selectedSubjects.includes(subj.name);
+                return (
+                  <button
+                    key={subj.name}
+                    type="button"
+                    onClick={() => toggleSubject(subj.name)}
+                    className={`p-3 rounded-2xl border text-left transition-all flex items-center justify-between gap-2 group ${
+                      isSelected
+                        ? 'border-brand-500 bg-brand-500/10 text-brand-900 dark:text-brand-200 ring-2 ring-brand-500/30 shadow-sm'
+                        : 'border-gray-200 dark:border-dark-border hover:border-brand-500/40 bg-gray-50/50 dark:bg-dark-surface/40 text-gray-800 dark:text-gray-200'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2.5 truncate">
+                      <div className={`w-4 h-4 rounded-md border flex items-center justify-center text-[10px] flex-shrink-0 transition-colors ${
                         isSelected
-                          ? 'border-brand-500 bg-brand-500/10 text-brand-900 dark:text-brand-200 ring-2 ring-brand-500/30'
-                          : 'border-gray-200 dark:border-dark-border hover:border-brand-500/40 bg-gray-50/50 dark:bg-dark-surface/40 text-gray-800 dark:text-gray-200'
-                      }`}
-                    >
-                      <div className="space-y-1 truncate">
-                        <div className="flex items-center gap-2">
-                          <span className={`w-4 h-4 rounded-full border flex items-center justify-center text-[10px] ${
-                            isSelected
-                              ? 'border-brand-500 bg-brand-500 text-white font-bold'
-                              : 'border-gray-400 text-transparent'
-                          }`}>
-                            ✓
-                          </span>
-                          <span className="text-xs font-bold truncate">{conceptItem.name}</span>
-                        </div>
-                        {conceptItem.subtopics && conceptItem.subtopics.length > 0 && (
-                          <p className="text-[10px] text-gray-400 truncate pl-6">
-                            {conceptItem.subtopics.slice(0, 3).join(' • ')}
-                          </p>
-                        )}
+                          ? 'border-brand-500 bg-brand-500 text-white font-bold'
+                          : 'border-gray-400 text-transparent'
+                      }`}>
+                        ✓
                       </div>
+                      <span className="text-xs font-bold truncate">{subj.name}</span>
+                    </div>
 
-                      {conceptItem.importance && (
-                        <span className="text-[9px] px-1.5 py-0.5 rounded font-bold uppercase tracking-wider bg-gray-200/60 dark:bg-dark-border text-gray-600 dark:text-gray-300 flex-shrink-0">
-                          {conceptItem.importance}
-                        </span>
-                      )}
-                    </button>
-                  );
-                })}
-              </div>
-            )}
+                    <span className="text-[9px] px-1.5 py-0.5 rounded font-bold uppercase tracking-wider bg-gray-200/60 dark:bg-dark-border text-gray-600 dark:text-gray-300 flex-shrink-0">
+                      {subj.category}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
           </div>
 
-          {/* STEP 3: Question Count Selector (20 to 30) */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2 border-t border-gray-100 dark:border-dark-border/60">
+          {/* STEP 2, 3, 4: Options Row */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-4 border-t border-gray-100 dark:border-dark-border/60">
             <div>
               <label className="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 block mb-2">
-                Step 3: Question Count (20 to 30)
+                Step 2: Question Count (20 to 30)
               </label>
               <div className="grid grid-cols-3 gap-2">
                 {QUESTION_COUNTS.map((cnt) => (
                   <button
                     key={cnt}
+                    type="button"
                     onClick={() => setSelectedCount(cnt)}
                     className={`py-2 px-3 rounded-xl text-xs font-extrabold transition-all ${
                       selectedCount === cnt
@@ -453,12 +466,13 @@ export const PracticeHub = () => {
 
             <div>
               <label className="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 block mb-2">
-                Step 4: Difficulty Level
+                Step 3: Difficulty Level
               </label>
               <div className="grid grid-cols-3 gap-2">
                 {['Medium', 'Hard', 'Easy'].map((diff) => (
                   <button
                     key={diff}
+                    type="button"
                     onClick={() => setSelectedDifficulty(diff)}
                     className={`py-2 px-3 rounded-xl text-xs font-extrabold transition-all ${
                       selectedDifficulty === diff
@@ -474,7 +488,7 @@ export const PracticeHub = () => {
 
             <div>
               <label className="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 block mb-2">
-                Step 5: Question Style
+                Step 4: Question Style
               </label>
               <select
                 value={selectedType}
@@ -493,15 +507,15 @@ export const PracticeHub = () => {
           {/* Launch Action */}
           <div className="pt-4 border-t border-gray-100 dark:border-dark-border/60 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div className="text-xs text-gray-500 dark:text-gray-400">
-              Ready: Generating <strong className="text-brand-600 dark:text-brand-400 font-bold">{selectedCount} Questions</strong> exclusively on <strong className="text-gray-900 dark:text-white font-bold">{selectedConcept || 'Selected Concept'}</strong>
+              Generating <strong className="text-brand-600 dark:text-brand-400 font-bold">{selectedCount} Questions</strong> across <strong className="text-gray-900 dark:text-white font-bold">{selectedSubjects.length} Subject{selectedSubjects.length > 1 ? 's' : ''}</strong> ({selectedSubjects.slice(0, 3).join(', ')}{selectedSubjects.length > 3 ? ` +${selectedSubjects.length - 3} more` : ''})
             </div>
             <button
-              onClick={() => startConceptPractice(selectedSubject, selectedConcept, selectedCount)}
-              disabled={generating || !selectedConcept}
+              onClick={startMultiSubjectPractice}
+              disabled={generating || selectedSubjects.length === 0}
               className="px-6 py-3 rounded-2xl bg-gradient-to-r from-brand-600 via-indigo-600 to-purple-600 hover:from-brand-500 hover:to-purple-500 text-white font-black text-xs shadow-xl shadow-brand-500/30 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
             >
               <Sparkles className="w-4 h-4" />
-              <span>Generate {selectedCount} Questions on {selectedConcept || 'Concept'}</span>
+              <span>Generate {selectedCount} Questions on {selectedSubjects.length > 1 ? `${selectedSubjects.length} Subjects` : selectedSubjects[0]}</span>
             </button>
           </div>
         </div>
@@ -517,10 +531,10 @@ export const PracticeHub = () => {
           </div>
           <div>
             <h3 className="text-lg font-bold text-gray-900 dark:text-white">
-              Gemini AI is generating {selectedCount} questions on "{selectedConcept}"...
+              Gemini AI is generating {selectedCount} questions across {selectedSubjects.length} subject{selectedSubjects.length > 1 ? 's' : ''}...
             </h3>
             <p className="text-xs text-gray-400 mt-1 max-w-md">
-              Building questions covering definitions, internal mechanisms, edge cases, and code tracing.
+              Targeting: {selectedSubjects.join(', ')}.
             </p>
           </div>
         </div>
@@ -531,10 +545,10 @@ export const PracticeHub = () => {
           </div>
           <div>
             <h3 className="text-2xl font-black text-gray-900 dark:text-white">
-              {selectedConcept} Drill Completed!
+              Practice Drill Completed!
             </h3>
             <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-              You've answered all {questions.length} questions on <strong className="text-gray-700 dark:text-gray-200">{selectedConcept}</strong>.
+              You've answered all {questions.length} questions across <strong className="text-gray-700 dark:text-gray-200">{selectedSubjects.join(', ')}</strong>.
             </p>
           </div>
 
@@ -564,18 +578,18 @@ export const PracticeHub = () => {
               Review Responses
             </button>
             <button
-              onClick={() => startConceptPractice(selectedSubject, selectedConcept, selectedCount)}
+              onClick={startMultiSubjectPractice}
               className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-brand-500 hover:bg-brand-600 text-white font-bold text-xs shadow-md"
             >
               <RotateCcw className="w-4 h-4" />
-              <span>Generate Another {selectedCount} Qs on {selectedConcept}</span>
+              <span>Generate Another {selectedCount} Qs</span>
             </button>
             <button
               onClick={() => setShowStudio(true)}
               className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs shadow-md"
             >
               <Target className="w-4 h-4" />
-              <span>Choose a New Concept</span>
+              <span>Choose Other Subjects</span>
             </button>
           </div>
         </div>
@@ -584,26 +598,28 @@ export const PracticeHub = () => {
           <HelpCircle className="w-12 h-12 text-gray-400 mx-auto" />
           <div>
             <h3 className="text-base font-bold text-gray-800 dark:text-gray-200">No active practice set loaded</h3>
-            <p className="text-xs text-gray-400 mt-1">Pick a concept and generate a full 20 to 30 question drill.</p>
+            <p className="text-xs text-gray-400 mt-1">Select subjects from all 22 subjects above and generate a 20 to 30 question drill.</p>
           </div>
           <button
             onClick={() => setShowStudio(true)}
             className="px-6 py-2.5 rounded-xl bg-brand-500 hover:bg-brand-600 text-white text-xs font-bold shadow-md inline-flex items-center gap-2"
           >
-            <Target className="w-4 h-4" /> Open Concept Studio
+            <Target className="w-4 h-4" /> Open Subject Studio
           </button>
         </div>
       ) : (
         <div className="rounded-3xl bg-white dark:bg-dark-card border border-gray-200 dark:border-dark-border p-6 md:p-8 shadow-sm space-y-6">
-          {/* Active Concept Header */}
+          {/* Active Quiz Header */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-gray-100 dark:border-dark-border pb-4">
             <div className="flex flex-wrap items-center gap-2">
               <span className="text-xs font-black px-3 py-1 rounded-xl bg-brand-500/10 text-brand-600 dark:text-brand-400 border border-brand-500/20">
-                🎯 {currentQ.topic || selectedConcept}
+                📚 {currentQ.subject || 'Computer Science'}
               </span>
-              <span className="text-xs font-bold px-2.5 py-1 rounded-lg bg-gray-100 dark:bg-dark-surface text-gray-600 dark:text-gray-300">
-                {currentQ.subject || selectedSubject}
-              </span>
+              {currentQ.topic && (
+                <span className="text-xs font-bold px-2.5 py-1 rounded-lg bg-gray-100 dark:bg-dark-surface text-gray-600 dark:text-gray-300">
+                  {currentQ.topic}
+                </span>
+              )}
               <span className="text-xs font-bold px-2.5 py-1 rounded-lg bg-amber-500/10 text-amber-500">
                 {currentQ.difficulty}
               </span>
@@ -623,7 +639,7 @@ export const PracticeHub = () => {
             </div>
           </div>
 
-          {/* Interactive 20-30 Question Navigation Matrix */}
+          {/* Question Navigation Matrix */}
           <div className="space-y-1.5">
             <div className="flex items-center justify-between text-[11px] text-gray-400 font-semibold">
               <span>Question Navigation Matrix ({attemptedCount}/{questions.length} Answered)</span>
@@ -650,8 +666,9 @@ export const PracticeHub = () => {
                 return (
                   <button
                     key={idx}
+                    type="button"
                     onClick={() => jumpToQuestion(idx)}
-                    className={`w-8 h-8 rounded-xl border text-xs flex items-center justify-center flex-shrink-0 transition-all ${bgStyle}`}
+                    className={`w-8 h-8 rounded-xl text-xs font-mono border flex items-center justify-center flex-shrink-0 transition-all ${bgStyle}`}
                     title={`Question ${idx + 1}`}
                   >
                     {idx + 1}
@@ -661,142 +678,123 @@ export const PracticeHub = () => {
             </div>
           </div>
 
-          {/* Question Statement */}
-          <div className="space-y-3">
-            <h2 className="text-lg md:text-xl font-bold text-gray-900 dark:text-white leading-relaxed">
+          {/* Question Body */}
+          <div className="space-y-4">
+            <h2 className="text-base sm:text-lg font-bold text-gray-900 dark:text-white leading-relaxed">
               {currentQ.question}
             </h2>
 
             {currentQ.codeSnippet && (
-              <pre className="p-4 rounded-2xl bg-gray-900 text-gray-100 font-mono text-xs overflow-x-auto border border-gray-800">
+              <pre className="p-4 rounded-2xl bg-gray-900 text-gray-100 text-xs font-mono overflow-x-auto border border-gray-800 leading-relaxed">
                 <code>{currentQ.codeSnippet}</code>
               </pre>
             )}
           </div>
 
-          {/* 4 Multiple Choice Options */}
-          <div className="space-y-3 pt-2">
-            {(currentQ.options || []).map((opt, idx) => {
+          {/* Options Grid */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {currentQ.options?.map((opt, i) => {
+              const optLetter = ['A', 'B', 'C', 'D'][i] || String(i + 1);
               const isSelected = selectedAnswer === opt;
-              let optStyle = 'border-gray-200 dark:border-dark-border hover:border-brand-500/50 bg-gray-50/50 dark:bg-dark-surface/40';
+              let btnStyle = 'border-gray-200 dark:border-dark-border bg-gray-50/50 dark:bg-dark-surface/50 text-gray-800 dark:text-gray-200 hover:border-brand-500/50';
 
               if (submitted) {
-                if (opt === currentQ.correctAnswer) {
-                  optStyle = 'border-emerald-500 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-bold';
-                } else if (isSelected && !result?.isCorrect) {
-                  optStyle = 'border-rose-500 bg-rose-500/10 text-rose-600 dark:text-rose-400 font-bold';
+                const isCorrectOpt = String(opt).trim().toLowerCase() === String(currentQ.correctAnswer).trim().toLowerCase();
+                if (isCorrectOpt) {
+                  btnStyle = 'border-emerald-500 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 ring-2 ring-emerald-500/30';
+                } else if (isSelected && !isCorrectOpt) {
+                  btnStyle = 'border-rose-500 bg-rose-500/10 text-rose-700 dark:text-rose-300 ring-2 ring-rose-500/30';
                 } else {
-                  optStyle = 'opacity-50 border-gray-200 dark:border-dark-border';
+                  btnStyle = 'opacity-50 border-gray-200 dark:border-dark-border';
                 }
               } else if (isSelected) {
-                optStyle = 'border-brand-500 bg-brand-500/10 text-brand-600 dark:text-brand-400 font-bold shadow-sm';
+                btnStyle = 'border-brand-500 bg-brand-500/10 text-brand-900 dark:text-brand-200 ring-2 ring-brand-500/30 font-bold';
               }
 
               return (
                 <button
-                  key={idx}
+                  key={i}
                   disabled={submitted}
                   onClick={() => setSelectedAnswer(opt)}
-                  className={`w-full text-left p-4 rounded-2xl border text-sm font-medium transition-all flex items-center justify-between ${optStyle}`}
+                  className={`p-4 rounded-2xl border text-left text-xs sm:text-sm font-medium transition-all flex items-start gap-3 ${btnStyle}`}
                 >
-                  <div className="flex items-center gap-3">
-                    <span className="w-6 h-6 rounded-lg bg-gray-200 dark:bg-dark-border text-gray-700 dark:text-gray-300 flex items-center justify-center text-xs font-bold flex-shrink-0">
-                      {String.fromCharCode(65 + idx)}
-                    </span>
-                    <span>{opt}</span>
-                  </div>
-                  {submitted && opt === currentQ.correctAnswer && (
-                    <Check className="w-5 h-5 text-emerald-500 flex-shrink-0" />
-                  )}
-                  {submitted && isSelected && !result?.isCorrect && (
-                    <X className="w-5 h-5 text-rose-500 flex-shrink-0" />
-                  )}
+                  <span className="w-6 h-6 rounded-lg bg-white dark:bg-dark-card border border-inherit flex items-center justify-center font-bold text-xs flex-shrink-0">
+                    {optLetter}
+                  </span>
+                  <span className="pt-0.5 leading-relaxed">{opt}</span>
                 </button>
               );
             })}
           </div>
 
-          {/* Feedback & In-depth Concept Explanation */}
+          {/* Explanation Banner */}
           {submitted && (
-            <div
-              className={`p-5 rounded-2xl border text-xs md:text-sm space-y-3 animate-in fade-in ${
-                result?.isCorrect
-                  ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-900 dark:text-emerald-200'
-                  : 'bg-rose-500/10 border-rose-500/30 text-rose-900 dark:text-rose-200'
-              }`}
-            >
-              <div className="flex items-center justify-between font-bold">
-                <span className="flex items-center gap-1.5 text-sm">
+            <div className={`p-5 rounded-3xl border space-y-3 animate-in fade-in ${
+              result?.isCorrect
+                ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-900 dark:text-emerald-200'
+                : 'bg-rose-500/10 border-rose-500/20 text-rose-900 dark:text-rose-200'
+            }`}>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2 font-bold text-sm">
                   {result?.isCorrect ? (
                     <>
-                      <CheckCircle2 className="w-5 h-5 text-emerald-500" /> Correct! +15 XP
+                      <CheckCircle2 className="w-5 h-5 text-emerald-500" />
+                      <span>Correct Answer!</span>
                     </>
                   ) : (
                     <>
-                      <AlertCircle className="w-5 h-5 text-rose-500" /> Incorrect answer
+                      <XCircle className="w-5 h-5 text-rose-500" />
+                      <span>Incorrect. Correct answer is: {currentQ.correctAnswer}</span>
                     </>
                   )}
-                </span>
+                </div>
 
                 {!result?.isCorrect && (
                   <button
                     onClick={handleAddToMistakes}
                     disabled={mistakeAdded}
-                    className={`flex items-center gap-1 px-3 py-1 rounded-lg text-xs font-bold transition-all ${
-                      mistakeAdded
-                        ? 'bg-gray-200 text-gray-500 cursor-default'
-                        : 'bg-rose-500 text-white hover:bg-rose-600 shadow-sm'
-                    }`}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white dark:bg-dark-card text-xs font-bold text-rose-600 border border-rose-200 dark:border-rose-900 shadow-sm transition-all disabled:opacity-50"
                   >
-                    <BookmarkPlus className="w-3.5 h-3.5" />
-                    {mistakeAdded ? 'Added to Mistake Book' : 'Add to Mistake Book'}
+                    <BookMarked className="w-3.5 h-3.5" />
+                    <span>{mistakeAdded ? 'Added to Mistakes' : 'Add to Mistake Book'}</span>
                   </button>
                 )}
               </div>
 
-              <p className="leading-relaxed font-sans">
-                <strong className="block mb-1">Concept Explanation:</strong>
-                {currentQ.explanation || 'Review the conceptual definition and boundary constraints.'}
-              </p>
+              <div className="text-xs leading-relaxed opacity-90 pl-7">
+                <strong>Technical Explanation: </strong>
+                {result?.explanation || currentQ.explanation || 'Detailed answer logic based on CSE placement principles.'}
+              </div>
             </div>
           )}
 
-          {/* Action Buttons & Pager */}
-          <div className="flex items-center justify-between pt-4 border-t border-gray-100 dark:border-dark-border">
+          {/* Actions Bar */}
+          <div className="pt-4 border-t border-gray-100 dark:border-dark-border flex items-center justify-between">
             <button
               onClick={() => jumpToQuestion(Math.max(0, currentIndex - 1))}
               disabled={currentIndex === 0}
-              className="px-4 py-2 rounded-xl border border-gray-200 dark:border-dark-border text-xs font-bold text-gray-600 dark:text-gray-300 disabled:opacity-30 hover:bg-gray-50 dark:hover:bg-dark-surface flex items-center gap-1"
+              className="px-4 py-2.5 rounded-xl border border-gray-200 dark:border-dark-border text-xs font-bold text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-dark-surface disabled:opacity-30"
             >
-              <ArrowLeft className="w-3.5 h-3.5" /> Previous
+              Previous
             </button>
 
-            <div className="flex items-center gap-3">
-              {!submitted ? (
-                <button
-                  onClick={handleSubmitAnswer}
-                  disabled={!selectedAnswer}
-                  className="px-6 py-2.5 rounded-xl bg-brand-500 hover:bg-brand-600 disabled:opacity-50 text-white font-bold text-xs shadow-md transition-all"
-                >
-                  Submit Answer
-                </button>
-              ) : (
-                <button
-                  onClick={handleNextQuestion}
-                  className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-brand-500 hover:bg-brand-600 text-white font-bold text-xs shadow-md transition-all"
-                >
-                  {currentIndex < questions.length - 1 ? (
-                    <>
-                      Next Question <ArrowRight className="w-4 h-4" />
-                    </>
-                  ) : (
-                    <>
-                      Complete Test <CheckCircle2 className="w-4 h-4" />
-                    </>
-                  )}
-                </button>
-              )}
-            </div>
+            {!submitted ? (
+              <button
+                onClick={handleSubmitAnswer}
+                disabled={!selectedAnswer}
+                className="px-6 py-2.5 rounded-xl bg-brand-500 hover:bg-brand-600 text-white font-bold text-xs shadow-md shadow-brand-500/25 transition-all disabled:opacity-50"
+              >
+                Submit Answer
+              </button>
+            ) : (
+              <button
+                onClick={handleNextQuestion}
+                className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-brand-500 hover:bg-brand-600 text-white font-bold text-xs shadow-md shadow-brand-500/25 transition-all"
+              >
+                <span>{currentIndex === questions.length - 1 ? 'Finish Drill' : 'Next Question'}</span>
+                <ArrowRight className="w-4 h-4" />
+              </button>
+            )}
           </div>
         </div>
       )}

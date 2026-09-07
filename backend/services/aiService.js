@@ -320,14 +320,30 @@ Return ONLY valid JSON format:
 export const generateAIPracticeQuestions = async ({
   type = 'All',
   subject = '',
+  subjects = [],
   topic = '',
   difficulty = 'Medium',
   count = 25,
   apiKey = ''
 }) => {
   const targetCount = Math.min(30, Math.max(10, Number(count) || 25));
-  const conceptName = topic || subject || 'Core Computer Science';
-  const subjectName = subject || 'Computer Science';
+
+  // Normalize list of subjects
+  let subjectList = [];
+  if (Array.isArray(subjects) && subjects.length > 0) {
+    subjectList = subjects.filter(Boolean);
+  } else if (Array.isArray(subject) && subject.length > 0) {
+    subjectList = subject.filter(Boolean);
+  } else if (typeof subject === 'string' && subject.trim()) {
+    subjectList = subject.split(',').map(s => s.trim()).filter(Boolean);
+  }
+
+  if (subjectList.length === 0) {
+    subjectList = ['Operating Systems'];
+  }
+
+  const subjectsLabel = subjectList.join(', ');
+  const isMultiSubject = subjectList.length > 1;
 
   const typeGuidance = {
     SQL: 'Generate practical SQL query, relational schema, normalization, transaction, and index questions.',
@@ -342,24 +358,25 @@ export const generateAIPracticeQuestions = async ({
   // Helper to build prompt for a sub-batch
   const buildPrompt = (batchSize, focusDimension) => `You are a Principal Engineering Placement Examiner.
 Task: Generate exactly ${batchSize} high-yield, non-repetitive multiple-choice placement questions.
-Subject: ${subjectName}
-EXCLUSIVELY FOCUSED CONCEPT: "${conceptName}"
+Selected Subject(s): ${subjectsLabel}
+${isMultiSubject ? `CRITICAL: Distribute the ${batchSize} questions evenly across the selected subjects (${subjectsLabel}).` : `CRITICAL: Every question must be exclusively about ${subjectsLabel}.`}
 Difficulty: ${difficulty}
 Question Type: ${type}
 Focus Dimension: ${focusDimension}
 
 CRITICAL RULES:
-1. Every question MUST BE STRICTLY about "${conceptName}". Do NOT include questions from other unrelated topics!
+1. Every question MUST BE STRICTLY relevant to the selected subject(s) [${subjectsLabel}].
 2. Provide 4 realistic options. The "correctAnswer" MUST be verbatim identical to one of the 4 options.
 3. Include concise code snippets where helpful.
 4. "explanation" should be 2-3 clear sentences explaining the technical reason.
-5. Return ONLY a valid JSON array of objects without markdown fences.
+5. In each question object, assign "subject" to the specific subject from [${subjectList.map(s => `"${s}"`).join(', ')}] that the question tests.
+6. Return ONLY a valid JSON array of objects without markdown fences.
 
 Format:
 [
   {
-    "subject": "${subjectName}",
-    "topic": "${conceptName}",
+    "subject": "One of: ${subjectList.join(' | ')}",
+    "topic": "Specific concept name",
     "type": "${type === 'All' ? 'MCQ' : type}",
     "question": "Question text here",
     "codeSnippet": "Code snippet or empty string",
@@ -371,13 +388,13 @@ Format:
 ]`;
 
   try {
-    // If targetCount >= 16, run 2 concurrent focused batches for speed and deep topic coverage
+    // If targetCount >= 16, run 2 concurrent focused batches for speed and deep coverage
     if (targetCount >= 16) {
       const half1 = Math.ceil(targetCount / 2);
       const half2 = Math.floor(targetCount / 2);
       const [raw1, raw2] = await Promise.all([
-        executeWithGemini(apiKey, buildPrompt(half1, 'Part 1: Core definitions, mathematical theorems, internal mechanics, algorithms, and state transitions')),
-        executeWithGemini(apiKey, buildPrompt(half2, 'Part 2: Edge cases, boundary conditions, code tracing, time/space trade-offs, and interview pitfalls'))
+        executeWithGemini(apiKey, buildPrompt(half1, 'Part 1: Core definitions, state transitions, algorithms, and key theorems')),
+        executeWithGemini(apiKey, buildPrompt(half2, 'Part 2: Tricky edge cases, code output tracing, and placement traps'))
       ]);
 
       const list1 = extractJsonFromText(raw1) || [];
@@ -386,14 +403,14 @@ Format:
 
       if (combined.length >= 8) {
         return combined.map((q, idx) => ({
-          subject: subjectName,
-          topic: conceptName,
+          subject: q.subject || subjectList[idx % subjectList.length],
+          topic: q.topic || q.subject || 'Core Placement Concept',
           type: q.type || (type === 'All' ? 'MCQ' : type),
-          question: q.question || `${conceptName} Question #${idx + 1}`,
+          question: q.question || `Practice Question #${idx + 1}`,
           codeSnippet: q.codeSnippet || '',
           options: Array.isArray(q.options) && q.options.length >= 2 ? q.options : ['Option A', 'Option B', 'Option C', 'Option D'],
           correctAnswer: q.correctAnswer || (q.options ? q.options[0] : 'Option A'),
-          explanation: q.explanation || `Detailed analysis of ${conceptName} placement mechanics.`,
+          explanation: q.explanation || `Detailed analysis for placement exam.`,
           difficulty: q.difficulty || difficulty
         }));
       }
@@ -404,37 +421,37 @@ Format:
     const parsed = extractJsonFromText(singleRaw);
     if (Array.isArray(parsed) && parsed.length > 0) {
       return parsed.map((q, idx) => ({
-        subject: subjectName,
-        topic: conceptName,
+        subject: q.subject || subjectList[idx % subjectList.length],
+        topic: q.topic || q.subject || 'Core Placement Concept',
         type: q.type || (type === 'All' ? 'MCQ' : type),
-        question: q.question || `${conceptName} Question #${idx + 1}`,
+        question: q.question || `Practice Question #${idx + 1}`,
         codeSnippet: q.codeSnippet || '',
         options: Array.isArray(q.options) && q.options.length >= 2 ? q.options : ['Option A', 'Option B', 'Option C', 'Option D'],
         correctAnswer: q.correctAnswer || (q.options ? q.options[0] : 'Option A'),
-        explanation: q.explanation || `Detailed analysis of ${conceptName} placement mechanics.`,
+        explanation: q.explanation || `Detailed analysis for placement exam.`,
         difficulty: q.difficulty || difficulty
       }));
     }
-
     throw new Error('AI returned non-array structure');
   } catch (err) {
     console.warn('[Gemini Practice Generation Fallback]:', err.message);
     const fallbackList = [];
     for (let i = 1; i <= targetCount; i++) {
+      const assignedSubject = subjectList[(i - 1) % subjectList.length];
       fallbackList.push({
-        subject: subjectName,
-        topic: conceptName,
+        subject: assignedSubject,
+        topic: `${assignedSubject} Fundamentals`,
         type: type === 'All' ? 'MCQ' : type,
-        question: `${conceptName}: In-depth technical question #${i} testing core invariants, edge cases, and algorithmic complexity.`,
-        codeSnippet: i % 3 === 0 ? `// Diagnostic Check for ${conceptName}\nbool verifyState(Node* root) {\n    return root != nullptr;\n}` : '',
+        question: `${assignedSubject}: High-yield placement exam question #${i} testing core mechanisms and algorithmic efficiency.`,
+        codeSnippet: i % 3 === 0 ? `// Diagnostic Check for ${assignedSubject}\nbool verifyState() {\n    return true;\n}` : '',
         options: [
-          `Optimal invariant condition for ${conceptName}`,
+          `Optimal invariant condition for ${assignedSubject}`,
           `Alternative linear sub-optimal approach`,
           `Edge case boundary violation`,
           `Invalid state transition`
         ],
-        correctAnswer: `Optimal invariant condition for ${conceptName}`,
-        explanation: `In placement interviews, ${conceptName} requires verifying boundary constraints and optimal time/space complexity invariants.`,
+        correctAnswer: `Optimal invariant condition for ${assignedSubject}`,
+        explanation: `In placement interviews, ${assignedSubject} requires verifying boundary constraints and optimal time/space complexity invariants.`,
         difficulty
       });
     }

@@ -94,16 +94,31 @@ router.get('/questions', protect, async (req, res) => {
 });
 
 // POST /api/practice/generate-fresh
-// Generates 20 to 30 fresh questions laser-focused on a single selected concept
+// Generates 20 to 30 fresh questions focused on selected subject(s)
 router.post('/generate-fresh', protect, async (req, res) => {
   try {
-    const { type = 'All', subject = '', topic = '', difficulty = 'Medium', count = 25 } = req.body;
+    const { type = 'All', subject = '', subjects = [], topic = '', difficulty = 'Medium', count = 25 } = req.body;
     const targetCount = Math.min(30, Math.max(10, Number(count) || 25));
     const user = await User.findById(req.user._id);
 
+    // Normalize subjects array
+    let subjectList = [];
+    if (Array.isArray(subjects) && subjects.length > 0) {
+      subjectList = subjects.filter(Boolean);
+    } else if (Array.isArray(subject) && subject.length > 0) {
+      subjectList = subject.filter(Boolean);
+    } else if (typeof subject === 'string' && subject.trim()) {
+      subjectList = subject.split(',').map(s => s.trim()).filter(Boolean);
+    }
+
+    if (subjectList.length === 0) {
+      subjectList = ['Operating Systems'];
+    }
+
     const generated = await generateAIPracticeQuestions({
       type: type !== 'All' ? type : 'All',
-      subject: subject || '',
+      subject: subjectList.join(', '),
+      subjects: subjectList,
       topic: topic || '',
       difficulty: difficulty || 'Medium',
       count: targetCount,
