@@ -39,6 +39,7 @@ import api from '../api/axiosClient';
 import { useAuth } from '../context/AuthContext';
 import { useTimer } from '../context/TimerContext';
 import EmailVerificationModal from '../components/auth/EmailVerificationModal';
+import TeachMeAgainModal from '../components/common/TeachMeAgainModal';
 
 export const Dashboard = () => {
   const { user } = useAuth();
@@ -49,6 +50,9 @@ export const Dashboard = () => {
   const [chartData, setChartData] = useState([]);
   const [showVerifyModal, setShowVerifyModal] = useState(false);
   const [selectedWeakTopicInfo, setSelectedWeakTopicInfo] = useState(null);
+  const [teachModalOpen, setTeachModalOpen] = useState(false);
+  const [teachModalSubject, setTeachModalSubject] = useState('Operating Systems');
+  const [teachModalTopic, setTeachModalTopic] = useState('Deadlocks');
 
   useEffect(() => {
     fetchDashboardData();
@@ -632,7 +636,28 @@ export const Dashboard = () => {
                       <span className="truncate">{item.reason || item.recommendation || 'Low accuracy in recent practice sessions'}</span>
                     </div>
 
-                    <div className="pt-1 flex items-center justify-end gap-2">
+                    <div className="pt-1 flex items-center justify-end gap-2.5 flex-wrap">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setTeachModalSubject(item.subject || 'Operating Systems');
+                          setTeachModalTopic(item.topic || 'Deadlocks');
+                          setTeachModalOpen(true);
+                        }}
+                        className="text-[11px] font-bold text-purple-600 dark:text-purple-400 hover:underline flex items-center gap-1"
+                      >
+                        <Sparkles className="w-3 h-3 text-purple-500" />
+                        Teach Me Again
+                      </button>
+
+                      <Link
+                        to={`/resources?subject=${encodeURIComponent(item.subject || 'All')}&search=${encodeURIComponent(item.topic)}`}
+                        className="text-[11px] font-bold text-rose-600 dark:text-rose-400 hover:underline flex items-center gap-1"
+                      >
+                        <Video className="w-3 h-3 text-rose-500" />
+                        Watch Lectures
+                      </Link>
+
                       <Link
                         to={`/practice?subject=${encodeURIComponent(item.subject)}&topic=${encodeURIComponent(item.topic)}`}
                         className="text-[11px] font-bold text-brand-600 dark:text-brand-400 hover:underline flex items-center gap-1"
@@ -763,6 +788,14 @@ export const Dashboard = () => {
       <EmailVerificationModal
         isOpen={showVerifyModal}
         onClose={() => setShowVerifyModal(false)}
+      />
+
+      {/* Teach Me Again AI Pedagogical Modal */}
+      <TeachMeAgainModal
+        isOpen={teachModalOpen}
+        onClose={() => setTeachModalOpen(false)}
+        initialSubject={teachModalSubject}
+        initialTopic={teachModalTopic}
       />
     </div>
   );

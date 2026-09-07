@@ -779,3 +779,125 @@ Return ONLY valid JSON:
     };
   }
 };
+
+/**
+ * TEACH ME AGAIN: Comprehensive Concept Breakdown & Recommended Web & Video Resources
+ */
+export const teachConceptAgain = async ({
+  subject = 'Computer Science',
+  topic = 'General Concept',
+  userStrengthScore = 35,
+  apiKey = ''
+}) => {
+  const prompt = `You are a World-Class Computer Science Professor and Technical Placement Coach.
+A student is struggling with the concept "${topic}" in the subject "${subject}" (current estimated mastery: ${userStrengthScore}%).
+They have clicked "Teach Me Again".
+
+Provide a crystal-clear, highly educational breakdown following these exact sections:
+1. "recoveryPlan": An 8-step learning roadmap tailored to master this concept from scratch (Step 1: Understand ..., Step 2: ..., Step 8: Interview practice).
+2. "simpleExplanation": Explain it like I'm 15 years old. No jargon.
+3. "realWorldAnalogy": A relatable real-life analogy that makes the mechanism intuitive.
+4. "technicalExplanation": Rigorous CSE architectural explanation with technical terms, invariants, and algorithms.
+5. "example": A concrete code snippet, SQL query, or mathematical walk-through demonstrating this concept in action.
+6. "commonMistakes": 3-4 typical pitfalls or misconceptions students make during placement exams/interviews.
+7. "interviewPerspective": How top product and service companies test this concept (e.g. standard interview questions asked by Amazon, Google, Microsoft, TCS).
+8. "quickRevisionNotes": 4-5 high-yield bullet points for rapid last-minute revision.
+9. "recommendedWebpages": An array of 3 authoritative web resources with real URLs (GeeksforGeeks, MDN, W3Schools, LeetCode, Wikipedia, or official docs). Format: [{"title": "...", "url": "...", "source": "GeeksforGeeks / MDN / Docs", "type": "Article" | "Documentation" | "Practice"}]
+10. "recommendedYouTube": An array of 3 verified YouTube channels or popular lectures for this subject (e.g. Gate Smashers, Striver/takeUforward, Abdul Bari, NetworkChuck, Neso Academy, freeCodeCamp). Format: [{"title": "...", "url": "https://www.youtube.com/@...", "channel": "...", "duration": "15-25 mins"}]
+
+IMPORTANT:
+- Do NOT hallucinate broken URLs; use well-known valid URLs (e.g. https://www.geeksforgeeks.org, https://developer.mozilla.org, https://leetcode.com, https://www.youtube.com/@GateSmashers, https://www.youtube.com/@takeUforward).
+- Output ONLY valid JSON matching this schema:
+{
+  "concept": "${topic}",
+  "subject": "${subject}",
+  "recoveryPlan": ["Step 1: ...", "Step 2: ...", "Step 3: ...", "Step 4: ...", "Step 5: ...", "Step 6: ...", "Step 7: ...", "Step 8: ..."],
+  "simpleExplanation": "...",
+  "realWorldAnalogy": "...",
+  "technicalExplanation": "...",
+  "example": "...",
+  "commonMistakes": ["...", "..."],
+  "interviewPerspective": "...",
+  "quickRevisionNotes": ["...", "..."],
+  "recommendedWebpages": [{"title": "...", "url": "...", "source": "...", "type": "..."}],
+  "recommendedYouTube": [{"title": "...", "url": "...", "channel": "...", "duration": "..."}]
+}`;
+
+  try {
+    const raw = await executeWithGemini(apiKey, prompt);
+    return extractJsonFromText(raw);
+  } catch (err) {
+    console.warn('[Teach Concept Fallback]:', err.message);
+    return {
+      concept: topic,
+      subject: subject,
+      recoveryPlan: [
+        `Step 1: Understand the foundational definition and motivation of ${topic}`,
+        `Step 2: Learn the core mechanisms and rules governing ${topic}`,
+        `Step 3: Study the state transitions and architectural tradeoffs`,
+        `Step 4: Walk through standard hand-traced examples`,
+        `Step 5: Identify boundary edge-cases and race conditions`,
+        `Step 6: Solve 5 beginner practice multiple-choice questions`,
+        `Step 7: Solve 5 code output prediction and calculation problems`,
+        `Step 8: Practice standard placement interview defense questions`
+      ],
+      simpleExplanation: `${topic} is a fundamental concept in ${subject} designed to optimize resource coordination, correctness, and system throughput without unexpected errors.`,
+      realWorldAnalogy: `Think of ${topic} like traffic signals at a multi-lane crossroads: without strict ordering rules, vehicles would block one another indefinitely, causing complete gridlock.`,
+      technicalExplanation: `In ${subject}, ${topic} defines the formal invariants, data structures, and state transitions used by the runtime engine to maintain consistency, prevent undefined behavior, and ensure predictable execution.`,
+      example: `// Example demonstrating ${topic}\nfunction checkResourceSafety(process, available, allocation, need) {\n  // Banker's safety check / resource ordering invariant\n  for (let i = 0; i < available.length; i++) {\n    if (need[process][i] > available[i]) return false;\n  }\n  return true;\n}`,
+      commonMistakes: [
+        `Confusing definitions with adjacent mechanisms in ${subject}`,
+        `Ignoring boundary conditions such as circular wait or null references`,
+        `Assuming best-case performance without analyzing worst-case overhead`
+      ],
+      interviewPerspective: `Interviewers at top tech companies frequently ask candidates to detect ${topic} in real systems, explain prevention strategies, and compare alternative tradeoffs.`,
+      quickRevisionNotes: [
+        `Key invariant: maintains state integrity under concurrent access`,
+        `Primary tradeoff: runtime overhead vs. consistency guarantees`,
+        `Critical metric: latency, memory overhead, and recovery time`,
+        `Always verify edge cases in interview code`
+      ],
+      recommendedWebpages: [
+        {
+          title: `${topic} Comprehensive Guide`,
+          url: `https://www.geeksforgeeks.org/search/?q=${encodeURIComponent(topic)}`,
+          source: 'GeeksforGeeks',
+          type: 'Article'
+        },
+        {
+          title: `${subject} Specifications & Core Documentation`,
+          url: 'https://developer.mozilla.org',
+          source: 'MDN Web Docs / Standards',
+          type: 'Documentation'
+        },
+        {
+          title: `${topic} Interview Practice & Problem Sets`,
+          url: 'https://leetcode.com/problemset/all/',
+          source: 'LeetCode',
+          type: 'Practice'
+        }
+      ],
+      recommendedYouTube: [
+        {
+          title: `${topic} Complete Lecture Series`,
+          url: 'https://www.youtube.com/@GateSmashers',
+          channel: 'Gate Smashers',
+          duration: '22 mins'
+        },
+        {
+          title: `${subject} Placement Sheet & In-Depth Code Walkthrough`,
+          url: 'https://www.youtube.com/@takeUforward',
+          channel: 'take U forward (Striver)',
+          duration: '28 mins'
+        },
+        {
+          title: `${topic} Visual Animated Explanation`,
+          url: 'https://www.youtube.com/@AbdulBari',
+          channel: 'Abdul Bari',
+          duration: '18 mins'
+        }
+      ]
+    };
+  }
+};
+
