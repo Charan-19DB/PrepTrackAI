@@ -2,6 +2,7 @@ import express from 'express';
 import { protect } from '../middleware/authMiddleware.js';
 import DSAProblem from '../models/DSAProblem.js';
 import User from '../models/User.js';
+import { analyzeCodeSolution } from '../services/aiService.js';
 
 const router = express.Router();
 
@@ -135,8 +136,27 @@ router.put('/:id', protect, async (req, res) => {
 router.delete('/:id', protect, async (req, res) => {
   try {
     const problem = await DSAProblem.findOneAndDelete({ _id: req.params.id, userId: req.user._id });
-    if (!problem) return res.status(404).json({ message: 'Problem not found' });
     res.json({ message: 'Problem deleted successfully' });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// POST /api/dsa/analyze-code
+router.post('/analyze-code', protect, async (req, res) => {
+  try {
+    const { problemTitle, problemDescription, userCode, language } = req.body;
+    if (!problemTitle || !userCode) {
+      return res.status(400).json({ message: 'Problem title and code are required' });
+    }
+    const analysis = await analyzeCodeSolution({
+      problemTitle,
+      problemDescription,
+      userCode,
+      language: language || 'cpp',
+      apiKey: req.user.geminiApiKey || process.env.GEMINI_API_KEY
+    });
+    res.json(analysis);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

@@ -24,7 +24,12 @@ import {
   ChevronRight,
   ShieldCheck,
   X,
-  Download
+  Download,
+  Mic,
+  Headset,
+  Building2,
+  Layers,
+  Video
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
@@ -35,8 +40,13 @@ const navItems = [
   { name: 'Topic Explorer', path: '/topics', icon: BookOpen },
   { name: 'Practice Hub', path: '/practice', icon: CheckCircle2 },
   { name: 'DSA Tracker', path: '/dsa', icon: Code2 },
-  { name: 'Aptitude Practice', path: '/aptitude', icon: Calculator },
+  { name: 'AI Interview Room', path: '/interview/room', icon: Mic, badge: 'AI' },
+  { name: 'Communication Coach', path: '/communication', icon: Headset, badge: 'LSRW' },
+  { name: 'Company Roadmaps', path: '/company-prep', icon: Building2, badge: 'FAANG' },
+  { name: 'Flashcards (SM-2)', path: '/flashcards', icon: Layers },
+  { name: 'Learning Resources', path: '/resources', icon: Video },
   { name: 'Interview Prep', path: '/interview', icon: MessageSquareCode },
+  { name: 'Aptitude Practice', path: '/aptitude', icon: Calculator },
   { name: 'Revision System', path: '/revisions', icon: RotateCcw, badge: 'Due' },
   { name: 'Projects Tracker', path: '/projects', icon: FolderGit2 },
   { name: 'Analytics', path: '/analytics', icon: BarChart3 },

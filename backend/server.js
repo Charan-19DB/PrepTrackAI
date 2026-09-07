@@ -22,6 +22,12 @@ import notesRoutes from './routes/notes.js';
 import analyticsRoutes from './routes/analytics.js';
 import aiRoutes from './routes/ai.js';
 import searchRoutes from './routes/search.js';
+import dailyChallengeRoutes from './routes/dailyChallenge.js';
+import communicationRoutes from './routes/communication.js';
+import interviewRoomRoutes from './routes/interviewRoom.js';
+import resourcesRoutes from './routes/resources.js';
+import flashcardsRoutes from './routes/flashcards.js';
+import companyPrepRoutes from './routes/companyPrep.js';
 
 dotenv.config();
 
@@ -52,6 +58,12 @@ app.use('/api/notes', notesRoutes);
 app.use('/api/analytics', analyticsRoutes);
 app.use('/api/ai', aiRoutes);
 app.use('/api/search', searchRoutes);
+app.use('/api/daily-challenge', dailyChallengeRoutes);
+app.use('/api/communication', communicationRoutes);
+app.use('/api/interview-room', interviewRoomRoutes);
+app.use('/api/resources', resourcesRoutes);
+app.use('/api/flashcards', flashcardsRoutes);
+app.use('/api/company-prep', companyPrepRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {

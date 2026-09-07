@@ -12,7 +12,11 @@ import {
   Layers,
   Trash2,
   Star,
-  Check
+  Check,
+  X,
+  Lightbulb,
+  ShieldAlert,
+  Cpu
 } from 'lucide-react';
 import api from '../api/axiosClient';
 
@@ -59,6 +63,39 @@ export const DSATracker = () => {
     solutionNotes: '',
     revisitRequired: false
   });
+
+  // AI Code Review Modal
+  const [aiProblem, setAiProblem] = useState(null);
+  const [aiCode, setAiCode] = useState('');
+  const [aiLanguage, setAiLanguage] = useState('cpp');
+  const [aiAnalyzing, setAiAnalyzing] = useState(false);
+  const [aiAnalysisResult, setAiAnalysisResult] = useState(null);
+  const [unlockedHintLevel, setUnlockedHintLevel] = useState(1);
+
+  const handleOpenAiModal = (prob) => {
+    setAiProblem(prob);
+    setAiCode('');
+    setAiAnalysisResult(null);
+    setUnlockedHintLevel(1);
+  };
+
+  const handleAnalyzeCode = async () => {
+    if (!aiProblem || !aiCode.trim()) return;
+    try {
+      setAiAnalyzing(true);
+      const res = await api.post('/dsa/analyze-code', {
+        problemTitle: aiProblem.title,
+        problemDescription: aiProblem.solutionNotes || aiProblem.category,
+        userCode: aiCode,
+        language: aiLanguage
+      });
+      setAiAnalysisResult(res.data);
+    } catch (err) {
+      console.error('Code analysis failed', err);
+    } finally {
+      setAiAnalyzing(false);
+    }
+  };
 
   useEffect(() => {
     fetchProblems();
@@ -319,7 +356,16 @@ export const DSATracker = () => {
                 </div>
 
                 {/* Right side controls */}
-                <div className="flex items-center gap-3 self-end md:self-center">
+                <div className="flex items-center gap-2.5 self-end md:self-center">
+                  <button
+                    onClick={() => handleOpenAiModal(prob)}
+                    className="px-2.5 py-1 text-xs font-bold rounded-lg bg-gradient-to-r from-purple-500/10 to-brand-500/10 hover:from-purple-500 hover:to-brand-500 text-purple-600 dark:text-purple-400 hover:text-white border border-purple-500/20 transition-all flex items-center gap-1 shadow-sm"
+                    title="AI Code Review & Hints"
+                  >
+                    <Sparkles className="w-3.5 h-3.5" />
+                    AI Hints
+                  </button>
+
                   <button
                     onClick={() => handleToggleRevisit(prob)}
                     className={`px-2.5 py-1 text-xs font-bold rounded-lg border transition-all flex items-center gap-1 ${
@@ -495,6 +541,176 @@ export const DSATracker = () => {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* AI Code Review & Progressive Hints Modal */}
+      {aiProblem && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in">
+          <div className="w-full max-w-2xl bg-white dark:bg-dark-card rounded-3xl p-6 border border-gray-200 dark:border-dark-border shadow-2xl max-h-[90vh] overflow-y-auto space-y-4">
+            <div className="flex items-center justify-between border-b border-gray-100 dark:border-dark-border/60 pb-4">
+              <div className="flex items-center gap-3">
+                <div className="p-2.5 rounded-2xl bg-gradient-to-br from-purple-500/20 to-brand-500/20 text-purple-600 dark:text-purple-400">
+                  <Sparkles className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-gray-900 dark:text-white">
+                    AI Code Review & Hints: {aiProblem.title}
+                  </h3>
+                  <p className="text-xs text-gray-400">
+                    {aiProblem.category} • {aiProblem.difficulty} • Progressive guidance without spoilers
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setAiProblem(null)}
+                className="p-1.5 rounded-xl text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-dark-surface"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-semibold text-gray-700 dark:text-gray-300">
+                  Your Solution Code:
+                </label>
+                <select
+                  value={aiLanguage}
+                  onChange={(e) => setAiLanguage(e.target.value)}
+                  className="px-2.5 py-1 text-xs font-semibold rounded-lg border border-gray-200 dark:border-dark-border bg-gray-50 dark:bg-dark-surface text-gray-800 dark:text-gray-200"
+                >
+                  <option value="cpp">C++</option>
+                  <option value="java">Java</option>
+                  <option value="python">Python</option>
+                  <option value="javascript">JavaScript</option>
+                </select>
+              </div>
+
+              <textarea
+                value={aiCode}
+                onChange={(e) => setAiCode(e.target.value)}
+                rows={8}
+                placeholder={`// Paste your candidate solution here...\nint maxProfit(vector<int>& prices) {\n    int minPrice = INT_MAX, maxProfit = 0;\n    for(int p : prices) {\n        minPrice = min(minPrice, p);\n        maxProfit = max(maxProfit, p - minPrice);\n    }\n    return maxProfit;\n}`}
+                className="w-full font-mono text-xs px-3.5 py-3 rounded-2xl border border-gray-200 dark:border-dark-border bg-gray-50 dark:bg-dark-surface text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-brand-500"
+              />
+
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] text-gray-400">
+                  AI will analyze time/space efficiency and provide graduated hints.
+                </span>
+                <button
+                  onClick={handleAnalyzeCode}
+                  disabled={aiAnalyzing || !aiCode.trim()}
+                  className="px-4 py-2 rounded-xl bg-gradient-to-r from-brand-600 to-purple-600 hover:from-brand-500 hover:to-purple-500 text-white text-xs font-bold shadow-md disabled:opacity-50 transition-all flex items-center gap-1.5"
+                >
+                  {aiAnalyzing ? (
+                    <>
+                      <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      Analyzing...
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="w-3.5 h-3.5" />
+                      Analyze Solution
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+
+            {/* Analysis Results */}
+            {aiAnalysisResult && (
+              <div className="pt-4 border-t border-gray-100 dark:border-dark-border/60 space-y-4 animate-in fade-in">
+                {/* Complexity & Optimality Metrics */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+                  <div className="p-3 rounded-2xl bg-gray-50 dark:bg-dark-surface/60 border border-gray-100 dark:border-dark-border/40">
+                    <div className="text-[10px] text-gray-400 font-bold uppercase">Candidate Time</div>
+                    <div className="text-sm font-black text-brand-600 dark:text-brand-400 font-mono">
+                      {aiAnalysisResult.timeComplexity || 'O(N)'}
+                    </div>
+                  </div>
+                  <div className="p-3 rounded-2xl bg-gray-50 dark:bg-dark-surface/60 border border-gray-100 dark:border-dark-border/40">
+                    <div className="text-[10px] text-gray-400 font-bold uppercase">Candidate Space</div>
+                    <div className="text-sm font-black text-purple-600 dark:text-purple-400 font-mono">
+                      {aiAnalysisResult.spaceComplexity || 'O(1)'}
+                    </div>
+                  </div>
+                  <div className="p-3 rounded-2xl bg-gray-50 dark:bg-dark-surface/60 border border-gray-100 dark:border-dark-border/40">
+                    <div className="text-[10px] text-gray-400 font-bold uppercase">Target Time</div>
+                    <div className="text-sm font-black text-emerald-600 dark:text-emerald-400 font-mono">
+                      {aiAnalysisResult.optimalTimeComplexity || 'O(N)'}
+                    </div>
+                  </div>
+                  <div className="p-3 rounded-2xl bg-gray-50 dark:bg-dark-surface/60 border border-gray-100 dark:border-dark-border/40">
+                    <div className="text-[10px] text-gray-400 font-bold uppercase">Optimality</div>
+                    <div className={`text-xs font-bold mt-0.5 ${aiAnalysisResult.isOptimal ? 'text-emerald-500' : 'text-amber-500'}`}>
+                      {aiAnalysisResult.isOptimal ? '✓ Optimal' : '⚠️ Sub-optimal'}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Code Quality Review */}
+                {aiAnalysisResult.codeQualityReview && (
+                  <div className="p-3.5 rounded-2xl bg-indigo-50/50 dark:bg-indigo-950/20 border border-indigo-200/50 dark:border-indigo-800/30 text-xs text-indigo-900 dark:text-indigo-200 space-y-1">
+                    <span className="font-bold flex items-center gap-1.5 text-indigo-600 dark:text-indigo-400">
+                      <Cpu className="w-3.5 h-3.5" /> Code Quality & Mechanics
+                    </span>
+                    <p>{aiAnalysisResult.codeQualityReview}</p>
+                  </div>
+                )}
+
+                {/* Progressive Hints Section */}
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-gray-800 dark:text-gray-200 flex items-center gap-1.5">
+                      <Lightbulb className="w-4 h-4 text-amber-500" /> Progressive Hints
+                    </span>
+                    {unlockedHintLevel < 3 && (
+                      <button
+                        onClick={() => setUnlockedHintLevel(prev => Math.min(3, prev + 1))}
+                        className="text-xs font-bold text-brand-600 dark:text-brand-400 hover:underline"
+                      >
+                        + Reveal Next Hint ({unlockedHintLevel}/3)
+                      </button>
+                    )}
+                  </div>
+
+                  {aiAnalysisResult.hint1 && (
+                    <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-xs text-amber-900 dark:text-amber-200">
+                      <strong>Hint 1 (Concept):</strong> {aiAnalysisResult.hint1}
+                    </div>
+                  )}
+
+                  {unlockedHintLevel >= 2 && aiAnalysisResult.hint2 && (
+                    <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-xs text-amber-900 dark:text-amber-200 animate-in fade-in">
+                      <strong>Hint 2 (Pattern):</strong> {aiAnalysisResult.hint2}
+                    </div>
+                  )}
+
+                  {unlockedHintLevel >= 3 && aiAnalysisResult.hint3 && (
+                    <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-xs text-amber-900 dark:text-amber-200 animate-in fade-in">
+                      <strong>Hint 3 (Data Structure):</strong> {aiAnalysisResult.hint3}
+                    </div>
+                  )}
+                </div>
+
+                {/* Edge Cases */}
+                {aiAnalysisResult.edgeCases && aiAnalysisResult.edgeCases.length > 0 && (
+                  <div className="p-3 rounded-2xl bg-rose-50/40 dark:bg-rose-950/20 border border-rose-200/50 dark:border-rose-800/30 text-xs text-rose-900 dark:text-rose-200 space-y-1.5">
+                    <span className="font-bold flex items-center gap-1.5 text-rose-600 dark:text-rose-400">
+                      <ShieldAlert className="w-3.5 h-3.5" /> Edge Cases to Test
+                    </span>
+                    <ul className="list-disc list-inside space-y-0.5 text-gray-700 dark:text-gray-300">
+                      {aiAnalysisResult.edgeCases.map((ec, i) => (
+                        <li key={i}>{ec}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         </div>
       )}

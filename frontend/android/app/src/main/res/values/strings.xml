@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">PrepTrackAI</string>
+    <string name="title_activity_main">PrepTrackAI</string>
+    <string name="package_name">com.preptrack.ai</string>
+    <string name="custom_url_scheme">com.preptrack.ai</string>
+</resources>

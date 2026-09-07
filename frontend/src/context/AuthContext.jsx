@@ -72,6 +72,16 @@ export const AuthProvider = ({ children }) => {
     return res.data;
   };
 
+  const instantVerifyEmail = async () => {
+    const res = await api.post('/auth/instant-verify');
+    if (res.data?.user) {
+      setUser(prev => ({ ...prev, ...res.data.user, isEmailVerified: true }));
+    } else {
+      setUser(prev => ({ ...prev, isEmailVerified: true }));
+    }
+    return res.data;
+  };
+
   const logout = () => {
     localStorage.removeItem('preptrack_token');
     setToken(null);
@@ -101,6 +111,7 @@ export const AuthProvider = ({ children }) => {
       loginWithGoogle,
       sendEmailVerification,
       verifyEmailCode,
+      instantVerifyEmail,
       logout,
       updateProfile,
       updateSettings

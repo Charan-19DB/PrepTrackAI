@@ -4,21 +4,97 @@ import PracticeQuestion from '../models/PracticeQuestion.js';
 import PracticeAttempt from '../models/PracticeAttempt.js';
 import Mistake from '../models/Mistake.js';
 import User from '../models/User.js';
+import { generateAIPracticeQuestions } from '../services/aiService.js';
 
 const router = express.Router();
 
 // GET /api/practice/questions
 router.get('/questions', protect, async (req, res) => {
   try {
-    const { type, subject, difficulty, limit = 10 } = req.query;
+    const { type, subject, difficulty, limit = 10, fresh } = req.query;
+
+    // If fresh=true or if no questions exist for this query, generate dynamically with Gemini
+    if (fresh === 'true') {
+      const user = await User.findById(req.user._id);
+      const generated = await generateAIPracticeQuestions({
+        type: type && type !== 'All' ? type : 'All',
+        subject: subject || '',
+        difficulty: difficulty || 'Medium',
+        count: Number(limit) || 5,
+        apiKey: user?.settings?.geminiApiKey
+      });
+
+      // Insert generated questions so they have valid MongoDB IDs
+      const docsToInsert = generated.map(q => ({
+        ...q,
+        isCustom: true,
+        createdBy: req.user._id
+      }));
+
+      const createdQuestions = await PracticeQuestion.insertMany(docsToInsert);
+      return res.json(createdQuestions);
+    }
+
     const query = {};
-
-    if (type) query.type = type;
+    if (type && type !== 'All') query.type = type;
     if (subject) query.subject = subject;
-    if (difficulty) query.difficulty = difficulty;
+    if (difficulty && difficulty !== 'All') query.difficulty = difficulty;
 
-    const questions = await PracticeQuestion.find(query).limit(Number(limit));
+    let questions = await PracticeQuestion.find(query).sort({ createdAt: -1 }).limit(Number(limit));
+
+    // If questions in collection are empty or very low, generate fresh ones
+    if (questions.length === 0) {
+      const user = await User.findById(req.user._id);
+      const generated = await generateAIPracticeQuestions({
+        type: type && type !== 'All' ? type : 'All',
+        subject: subject || '',
+        difficulty: difficulty || 'Medium',
+        count: 5,
+        apiKey: user?.settings?.geminiApiKey
+      });
+
+      const docsToInsert = generated.map(q => ({
+        ...q,
+        isCustom: true,
+        createdBy: req.user._id
+      }));
+
+      questions = await PracticeQuestion.insertMany(docsToInsert);
+    }
+
     res.json(questions);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// POST /api/practice/generate-fresh
+// Generates fresh questions using the Gemini API key each and every time
+router.post('/generate-fresh', protect, async (req, res) => {
+  try {
+    const { type = 'All', subject = '', difficulty = 'Medium', count = 5 } = req.body;
+    const user = await User.findById(req.user._id);
+
+    const generated = await generateAIPracticeQuestions({
+      type: type !== 'All' ? type : 'All',
+      subject: subject || '',
+      difficulty: difficulty || 'Medium',
+      count: Number(count) || 5,
+      apiKey: user?.settings?.geminiApiKey
+    });
+
+    const docsToInsert = generated.map(q => ({
+      ...q,
+      isCustom: true,
+      createdBy: req.user._id
+    }));
+
+    const createdQuestions = await PracticeQuestion.insertMany(docsToInsert);
+    res.status(201).json({
+      success: true,
+      count: createdQuestions.length,
+      questions: createdQuestions
+    });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

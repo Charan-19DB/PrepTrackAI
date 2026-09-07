@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, X, BookOpen, Code2, MessageSquareCode, FileText, FolderGit2, Compass, ArrowRight } from 'lucide-react';
+import { Search, X, BookOpen, Code2, MessageSquareCode, FileText, FolderGit2, Compass, ArrowRight, Layers, Building2 } from 'lucide-react';
 import api from '../../api/axiosClient';
 
 export const GlobalSearchModal = ({ isOpen, onClose }) => {
@@ -69,6 +69,9 @@ export const GlobalSearchModal = ({ isOpen, onClose }) => {
       case 'Interview': return <MessageSquareCode className="w-4 h-4 text-purple-500" />;
       case 'Note': return <FileText className="w-4 h-4 text-blue-500" />;
       case 'Project': return <FolderGit2 className="w-4 h-4 text-rose-500" />;
+      case 'Resource': return <BookOpen className="w-4 h-4 text-sky-500" />;
+      case 'Flashcard': return <Layers className="w-4 h-4 text-amber-500" />;
+      case 'Company': return <Building2 className="w-4 h-4 text-violet-500" />;
       default: return <Search className="w-4 h-4 text-gray-400" />;
     }
   };

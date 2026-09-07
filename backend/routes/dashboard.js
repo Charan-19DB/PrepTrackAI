@@ -11,6 +11,7 @@ import Revision from '../models/Revision.js';
 import PracticeAttempt from '../models/PracticeAttempt.js';
 import Mistake from '../models/Mistake.js';
 import { detectWeakTopics } from '../services/weakTopicDetector.js';
+import { calculatePlacementReadiness } from '../services/placementReadinessCalculator.js';
 
 const router = express.Router();
 
@@ -63,10 +64,53 @@ router.get('/', protect, async (req, res) => {
     // 8. Pending Mistakes Count
     const pendingMistakesCount = await Mistake.countDocuments({ userId, resolved: false });
 
-    // 9. Weak Topics Detection
+    // 9. Dynamic Weak Topics Detection (with strength scores 0-100)
     const weakTopics = await detectWeakTopics(userId);
 
-    // 10. Motivational Quote / Greeting
+    // 10. Placement Readiness Score (0-100 across 6 dimensions)
+    const placementReadiness = await calculatePlacementReadiness(userId);
+
+    // 11. Today's AI Priority Schedule
+    const todayPrioritySchedule = [
+      {
+        id: 1,
+        title: weakTopics[0] ? `${weakTopics[0].subject} — ${weakTopics[0].topic}` : 'Operating Systems — Deadlocks',
+        durationMinutes: 30,
+        type: 'Weak Area Concept',
+        reason: weakTopics[0]?.reason || 'Scored below 45% in recent diagnostic assessment',
+        badge: weakTopics[0]?.emoji || '🔴',
+        link: '/practice'
+      },
+      {
+        id: 2,
+        title: todayRevisions[0] ? `Revise: ${todayRevisions[0].topicName}` : 'DBMS — Normalization',
+        durationMinutes: 20,
+        type: 'Spaced Repetition',
+        reason: todayRevisions[0] ? `Revision stage ${todayRevisions[0].revisionStage || 1} due today for long-term retention` : 'Overdue for revision based on spacing algorithm',
+        badge: '🔁',
+        link: '/revisions'
+      },
+      {
+        id: 3,
+        title: 'DSA: Sliding Window & Arrays',
+        durationMinutes: 25,
+        type: 'Coding Mastery',
+        reason: 'High frequency placement pattern for target role',
+        badge: '💻',
+        link: '/dsa'
+      },
+      {
+        id: 4,
+        title: 'Communication & Speaking Practice',
+        durationMinutes: 15,
+        type: 'Interview Readiness',
+        reason: 'Bottleneck identified: improve fluency and reduce conversational fillers',
+        badge: '🎤',
+        link: '/interview/practice'
+      }
+    ];
+
+    // 12. Motivational Quote / Greeting
     const streak = user?.streak?.currentStreak || 0;
     let motivationalMessage = `Welcome, ${user.name}! Start your first study session or topic today to build your placement streak.`;
     if (streak >= 10) {
@@ -108,7 +152,9 @@ router.get('/', protect, async (req, res) => {
       },
       todayTasks,
       todayRevisions,
-      weakTopics
+      weakTopics,
+      placementReadiness,
+      todayPrioritySchedule
     });
   } catch (error) {
     console.error('[Dashboard API Error]:', error);

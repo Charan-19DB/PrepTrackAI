@@ -26,6 +26,11 @@ import GoalsTracker from './pages/GoalsTracker';
 import Settings from './pages/Settings';
 import Login from './pages/Login';
 import Register from './pages/Register';
+import CommunicationCoach from './pages/CommunicationCoach';
+import AIInterviewRoom from './pages/AIInterviewRoom';
+import LearningResources from './pages/LearningResources';
+import FlashcardsHub from './pages/FlashcardsHub';
+import CompanyPrepPage from './pages/CompanyPrepPage';
 
 // Protected route wrapper
 const ProtectedRoute = ({ children }) => {
@@ -75,6 +80,11 @@ export default function App() {
         <Route path="aptitude" element={<AptitudePractice />} />
         <Route path="interview" element={<InterviewPrep />} />
         <Route path="interview/practice" element={<PracticeInterview />} />
+        <Route path="interview/room" element={<AIInterviewRoom />} />
+        <Route path="communication" element={<CommunicationCoach />} />
+        <Route path="resources" element={<LearningResources />} />
+        <Route path="flashcards" element={<FlashcardsHub />} />
+        <Route path="company-prep" element={<CompanyPrepPage />} />
         <Route path="revisions" element={<RevisionSystem />} />
         <Route path="projects" element={<ProjectsTracker />} />
         <Route path="analytics" element={<Analytics />} />
