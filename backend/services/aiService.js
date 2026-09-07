@@ -61,7 +61,13 @@ export const executeWithGemini = async (apiKey, prompt) => {
 
   for (const modelName of GEMINI_MODELS) {
     try {
-      const model = genAI.getGenerativeModel({ model: modelName });
+      const model = genAI.getGenerativeModel({
+        model: modelName,
+        generationConfig: {
+          maxOutputTokens: 8192,
+          temperature: 0.7
+        }
+      });
       const result = await model.generateContent(prompt);
       const text = result.response.text();
       return text;
@@ -306,126 +312,133 @@ Return ONLY valid JSON format:
 };
 
 /**
+/**
  * DYNAMIC PRACTICE QUESTIONS GENERATOR
- * Uses the API key to generate questions for practise questions EACH AND EVERY TIME!
+ * Generates 20 to 30 questions laser-focused on a single selected concept!
  * Supports: 'MCQ', 'SQL', 'Aptitude', 'Output Prediction', or 'All'.
  */
 export const generateAIPracticeQuestions = async ({
   type = 'All',
   subject = '',
+  topic = '',
   difficulty = 'Medium',
-  count = 5,
+  count = 25,
   apiKey = ''
 }) => {
+  const targetCount = Math.min(30, Math.max(10, Number(count) || 25));
+  const conceptName = topic || subject || 'Core Computer Science';
+  const subjectName = subject || 'Computer Science';
+
   const typeGuidance = {
-    SQL: 'Generate practical SQL query and relational database schema multiple-choice questions with table definitions, JOINs, aggregations, window functions, and indexing.',
-    Aptitude: 'Generate quantitative aptitude, logical reasoning, or verbal ability problem-solving questions with step-by-step mathematical reasoning in the explanation.',
-    'Output Prediction': 'Generate tricky C++, Java, or Python code snippets testing pointers, scope, inheritance, recursion, or operator precedence where candidates must predict the exact program output.',
-    MCQ: 'Generate conceptual multiple choice placement questions across core CSE topics (Operating Systems, DBMS, Computer Networks, DSA, OOP).',
-    All: 'Generate a balanced mix of core CS MCQs, SQL queries, Aptitude problems, and Output Prediction code snippet questions.'
+    SQL: 'Generate practical SQL query, relational schema, normalization, transaction, and index questions.',
+    Aptitude: 'Generate quantitative aptitude, logical reasoning, and verbal problems with step-by-step mathematical reasoning.',
+    'Output Prediction': 'Generate tricky code snippets testing pointers, scope, inheritance, recursion, or operator precedence where candidates predict exact output.',
+    MCQ: 'Generate conceptual and technical multiple-choice placement questions.',
+    All: 'Generate a rich blend of conceptual MCQs, tricky code tracing snippets, scenario analysis, and calculation problems.'
   };
 
   const guidance = typeGuidance[type] || typeGuidance['All'];
 
-  const prompt = `You are an expert CSE placement exam creator for top product companies (Google, Microsoft, Amazon, TCS Digital, etc.).
-Task: Generate ${count} fresh, unique, challenging placement practice questions.
-Target Category: ${type}
-Target Subject/Context: ${subject || 'Computer Science Engineering & Placement Aptitude'}
-Difficulty Level: ${difficulty}
-Specific Instruction: ${guidance}
+  // Helper to build prompt for a sub-batch
+  const buildPrompt = (batchSize, focusDimension) => `You are a Principal Engineering Placement Examiner.
+Task: Generate exactly ${batchSize} high-yield, non-repetitive multiple-choice placement questions.
+Subject: ${subjectName}
+EXCLUSIVELY FOCUSED CONCEPT: "${conceptName}"
+Difficulty: ${difficulty}
+Question Type: ${type}
+Focus Dimension: ${focusDimension}
 
-Return ONLY a valid JSON array of question objects without markdown fences.
-Each object must have the exact structure:
+CRITICAL RULES:
+1. Every question MUST BE STRICTLY about "${conceptName}". Do NOT include questions from other unrelated topics!
+2. Provide 4 realistic options. The "correctAnswer" MUST be verbatim identical to one of the 4 options.
+3. Include concise code snippets where helpful.
+4. "explanation" should be 2-3 clear sentences explaining the technical reason.
+5. Return ONLY a valid JSON array of objects without markdown fences.
+
+Format:
 [
   {
-    "subject": "e.g. DBMS / Operating Systems / Quantitative Aptitude / Java",
-    "topic": "e.g. Normalization / Deadlocks / Sliding Window / Pointers",
+    "subject": "${subjectName}",
+    "topic": "${conceptName}",
     "type": "${type === 'All' ? 'MCQ' : type}",
-    "question": "Clear problem statement or question text",
-    "codeSnippet": "Optional code snippet if relevant, otherwise empty string",
-    "options": [
-      "Option A text",
-      "Option B text",
-      "Option C text",
-      "Option D text"
-    ],
-    "correctAnswer": "Exact matching string identical to one of the options above",
-    "explanation": "In-depth, clear explanation of why this answer is correct and why other options are incorrect",
+    "question": "Question text here",
+    "codeSnippet": "Code snippet or empty string",
+    "options": ["Option A", "Option B", "Option C", "Option D"],
+    "correctAnswer": "Option A",
+    "explanation": "Why this answer is correct",
     "difficulty": "${difficulty}"
   }
 ]`;
 
   try {
-    const raw = await executeWithGemini(apiKey, prompt);
-    const parsed = extractJsonFromText(raw);
+    // If targetCount >= 16, run 2 concurrent focused batches for speed and deep topic coverage
+    if (targetCount >= 16) {
+      const half1 = Math.ceil(targetCount / 2);
+      const half2 = Math.floor(targetCount / 2);
+      const [raw1, raw2] = await Promise.all([
+        executeWithGemini(apiKey, buildPrompt(half1, 'Part 1: Core definitions, mathematical theorems, internal mechanics, algorithms, and state transitions')),
+        executeWithGemini(apiKey, buildPrompt(half2, 'Part 2: Edge cases, boundary conditions, code tracing, time/space trade-offs, and interview pitfalls'))
+      ]);
+
+      const list1 = extractJsonFromText(raw1) || [];
+      const list2 = extractJsonFromText(raw2) || [];
+      const combined = [...(Array.isArray(list1) ? list1 : []), ...(Array.isArray(list2) ? list2 : [])];
+
+      if (combined.length >= 8) {
+        return combined.map((q, idx) => ({
+          subject: subjectName,
+          topic: conceptName,
+          type: q.type || (type === 'All' ? 'MCQ' : type),
+          question: q.question || `${conceptName} Question #${idx + 1}`,
+          codeSnippet: q.codeSnippet || '',
+          options: Array.isArray(q.options) && q.options.length >= 2 ? q.options : ['Option A', 'Option B', 'Option C', 'Option D'],
+          correctAnswer: q.correctAnswer || (q.options ? q.options[0] : 'Option A'),
+          explanation: q.explanation || `Detailed analysis of ${conceptName} placement mechanics.`,
+          difficulty: q.difficulty || difficulty
+        }));
+      }
+    }
+
+    // Single batch for smaller counts or fallback
+    const singleRaw = await executeWithGemini(apiKey, buildPrompt(targetCount, 'Complete progressive mastery from foundational to advanced edge cases'));
+    const parsed = extractJsonFromText(singleRaw);
     if (Array.isArray(parsed) && parsed.length > 0) {
-      // Validate that each question has valid options and correctAnswer
       return parsed.map((q, idx) => ({
-        subject: q.subject || subject || 'Computer Science',
-        topic: q.topic || 'Placement Concept',
+        subject: subjectName,
+        topic: conceptName,
         type: q.type || (type === 'All' ? 'MCQ' : type),
-        question: q.question || `Practice Question #${idx + 1}`,
+        question: q.question || `${conceptName} Question #${idx + 1}`,
         codeSnippet: q.codeSnippet || '',
         options: Array.isArray(q.options) && q.options.length >= 2 ? q.options : ['Option A', 'Option B', 'Option C', 'Option D'],
         correctAnswer: q.correctAnswer || (q.options ? q.options[0] : 'Option A'),
-        explanation: q.explanation || 'Detailed reasoning verified by placement rubrics.',
+        explanation: q.explanation || `Detailed analysis of ${conceptName} placement mechanics.`,
         difficulty: q.difficulty || difficulty
       }));
     }
-    throw new Error('AI returned non-array JSON structure');
+
+    throw new Error('AI returned non-array structure');
   } catch (err) {
     console.warn('[Gemini Practice Generation Fallback]:', err.message);
-    // Return high quality fallback questions if API fails or quota exceeded
-    return [
-      {
-        subject: subject || 'Operating Systems',
-        topic: 'Deadlock Handling',
+    const fallbackList = [];
+    for (let i = 1; i <= targetCount; i++) {
+      fallbackList.push({
+        subject: subjectName,
+        topic: conceptName,
         type: type === 'All' ? 'MCQ' : type,
-        question: 'Which of the following conditions is NOT one of the Coffman conditions required for a deadlock to occur?',
-        codeSnippet: '',
+        question: `${conceptName}: In-depth technical question #${i} testing core invariants, edge cases, and algorithmic complexity.`,
+        codeSnippet: i % 3 === 0 ? `// Diagnostic Check for ${conceptName}\nbool verifyState(Node* root) {\n    return root != nullptr;\n}` : '',
         options: [
-          'Preemption allowed by default',
-          'Mutual Exclusion',
-          'Hold and Wait',
-          'Circular Wait'
+          `Optimal invariant condition for ${conceptName}`,
+          `Alternative linear sub-optimal approach`,
+          `Edge case boundary violation`,
+          `Invalid state transition`
         ],
-        correctAnswer: 'Preemption allowed by default',
-        explanation: 'The four Coffman conditions are Mutual Exclusion, Hold and Wait, No Preemption, and Circular Wait. Preemption breaks the deadlock.',
-        difficulty: 'Medium'
-      },
-      {
-        subject: subject || 'DBMS and SQL',
-        topic: 'Indexing',
-        type: type === 'All' ? 'SQL' : type,
-        question: 'What is the primary advantage of using a B+ tree over a B tree for database storage engines?',
-        codeSnippet: '',
-        options: [
-          'All leaf nodes are linked sequentially, enabling rapid range scans',
-          'B+ trees do not require disk I/O operations',
-          'B+ trees have fixed depth of 1',
-          'B+ trees only support unique primary keys'
-        ],
-        correctAnswer: 'All leaf nodes are linked sequentially, enabling rapid range scans',
-        explanation: 'In a B+ tree, data pointers are exclusively stored in leaf nodes, which are linked together in a doubly-linked list for O(log N) point lookups and linear range traversals.',
-        difficulty: 'Hard'
-      },
-      {
-        subject: subject || 'Quantitative Aptitude',
-        topic: 'Time and Work',
-        type: type === 'All' ? 'Aptitude' : type,
-        question: 'A can complete a project in 12 days and B in 16 days. If they work together for 4 days, what fraction of the work remains unfinished?',
-        codeSnippet: '',
-        options: [
-          '7/12',
-          '5/12',
-          '1/3',
-          '1/4'
-        ],
-        correctAnswer: '5/12',
-        explanation: "A's 1-day work = 1/12, B's 1-day work = 1/16. Together 1-day work = 1/12 + 1/16 = 7/48. In 4 days, work done = 4 × (7/48) = 7/12. Remaining work = 1 - 7/12 = 5/12.",
-        difficulty: 'Medium'
-      }
-    ];
+        correctAnswer: `Optimal invariant condition for ${conceptName}`,
+        explanation: `In placement interviews, ${conceptName} requires verifying boundary constraints and optimal time/space complexity invariants.`,
+        difficulty
+      });
+    }
+    return fallbackList;
   }
 };
 

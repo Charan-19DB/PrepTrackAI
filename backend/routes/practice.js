@@ -4,14 +4,36 @@ import PracticeQuestion from '../models/PracticeQuestion.js';
 import PracticeAttempt from '../models/PracticeAttempt.js';
 import Mistake from '../models/Mistake.js';
 import User from '../models/User.js';
+import Topic from '../models/Topic.js';
 import { generateAIPracticeQuestions } from '../services/aiService.js';
 
 const router = express.Router();
 
+// GET /api/practice/concepts
+// Returns concepts / topics for a given subject to power the concept multiple-choice selector
+router.get('/concepts', protect, async (req, res) => {
+  try {
+    const { subject } = req.query;
+    const query = {};
+    if (subject && subject !== 'All') {
+      query.subjectName = subject;
+    }
+
+    const topics = await Topic.find(query)
+      .select('_id name subjectName importance difficulty description subtopics')
+      .sort({ order: 1 });
+
+    res.json(topics);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
 // GET /api/practice/questions
 router.get('/questions', protect, async (req, res) => {
   try {
-    const { type, subject, difficulty, limit = 10, fresh } = req.query;
+    const { type, subject, topic, difficulty, limit = 25, fresh } = req.query;
+    const targetLimit = Math.min(30, Math.max(10, Number(limit) || 25));
 
     // If fresh=true or if no questions exist for this query, generate dynamically with Gemini
     if (fresh === 'true') {
@@ -19,8 +41,9 @@ router.get('/questions', protect, async (req, res) => {
       const generated = await generateAIPracticeQuestions({
         type: type && type !== 'All' ? type : 'All',
         subject: subject || '',
+        topic: topic || '',
         difficulty: difficulty || 'Medium',
-        count: Number(limit) || 5,
+        count: targetLimit,
         apiKey: user?.settings?.geminiApiKey
       });
 
@@ -37,10 +60,11 @@ router.get('/questions', protect, async (req, res) => {
 
     const query = {};
     if (type && type !== 'All') query.type = type;
-    if (subject) query.subject = subject;
+    if (subject && subject !== 'All') query.subject = subject;
+    if (topic && topic !== 'All') query.topic = topic;
     if (difficulty && difficulty !== 'All') query.difficulty = difficulty;
 
-    let questions = await PracticeQuestion.find(query).sort({ createdAt: -1 }).limit(Number(limit));
+    let questions = await PracticeQuestion.find(query).sort({ createdAt: -1 }).limit(targetLimit);
 
     // If questions in collection are empty or very low, generate fresh ones
     if (questions.length === 0) {
@@ -48,8 +72,9 @@ router.get('/questions', protect, async (req, res) => {
       const generated = await generateAIPracticeQuestions({
         type: type && type !== 'All' ? type : 'All',
         subject: subject || '',
+        topic: topic || '',
         difficulty: difficulty || 'Medium',
-        count: 5,
+        count: targetLimit,
         apiKey: user?.settings?.geminiApiKey
       });
 
@@ -69,17 +94,19 @@ router.get('/questions', protect, async (req, res) => {
 });
 
 // POST /api/practice/generate-fresh
-// Generates fresh questions using the Gemini API key each and every time
+// Generates 20 to 30 fresh questions laser-focused on a single selected concept
 router.post('/generate-fresh', protect, async (req, res) => {
   try {
-    const { type = 'All', subject = '', difficulty = 'Medium', count = 5 } = req.body;
+    const { type = 'All', subject = '', topic = '', difficulty = 'Medium', count = 25 } = req.body;
+    const targetCount = Math.min(30, Math.max(10, Number(count) || 25));
     const user = await User.findById(req.user._id);
 
     const generated = await generateAIPracticeQuestions({
       type: type !== 'All' ? type : 'All',
       subject: subject || '',
+      topic: topic || '',
       difficulty: difficulty || 'Medium',
-      count: Number(count) || 5,
+      count: targetCount,
       apiKey: user?.settings?.geminiApiKey
     });
 
